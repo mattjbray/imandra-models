@@ -1,0 +1,166 @@
+#redef;;
+#max_induct 1;;
+
+module Tree : sig
+  type 'a t = { value : 'a; children : 'a t list }
+    (* TODO: make abstract when #612 fixed. *)
+  val value : 'a t -> 'a
+  val order : 'a t -> int
+  val singleton : 'a -> 'a t
+  val merge : int t -> int t -> int t
+  val is_valid' : int -> int -> 'a t list -> bool
+    (* TODO: make abstract and move theorems into module when #613 fixed. *)
+  val is_valid : 'a t -> bool
+  val nodes_at_depth : int -> 'a t -> int
+  val height : 'a t -> int
+end = struct
+  type 'a t = { value : 'a; children : 'a t list }
+
+  let value tree = tree.value
+
+  let order tree = List.length tree.children
+
+  let singleton x = { value = x; children = [] }
+
+  let merge (t1 : 'a t) (t2 : 'a t) : 'a t =
+    if t1.value <= t2.value then
+      { t1 with children = t2 :: t1.children }
+    else
+      { t2 with children = t1 :: t2.children }
+
+  let rec is_valid' parent_order i children =
+    match children with
+    | [] -> true
+    | child :: children' ->
+      order child = parent_order - (i + 1) &&
+      is_valid' (order child) 0 child.children &&
+      is_valid' parent_order (i + 1) children'
+  [@@adm children]
+
+  let is_valid t = is_valid' (order t) 0 t.children
+
+  let rec nodes_at_depth' d children =
+    if d <= 0 then List.length children else
+    match children with
+    | [] -> 0
+    | child :: children' ->
+      nodes_at_depth' (d-1) child.children + nodes_at_depth' d children'
+  [@@adm children]
+
+  let nodes_at_depth d tree = if d <= 0 then 1 else nodes_at_depth' (d-1) tree.children
+
+  let rec height' children =
+    match children with
+    | [] -> 0
+    | child :: children' ->
+      max (1 + height' child.children) (height' children')
+
+  let height tree = height' tree.children
+end
+;;
+
+instance Tree.(fun t -> is_valid t && order t = 3 && value t > 0)
+;;
+
+(** Theorem: merging two valid trees results in a valid tree. *)
+
+lemma is_valid_shift i m children =
+  let open Tree in
+  is_valid' (i + List.length children) i children ==>
+  is_valid' (i + List.length children + m) (i + m) children
+[@@auto]
+;;
+
+lemma is_valid_shift_zero children =
+  let open Tree in
+  is_valid' (List.length children) 0 children ==>
+  is_valid' (1 + List.length children) 1 children
+[@@auto]
+[@@apply is_valid_shift 0 1 children]
+[@@rw]
+;;
+
+theorem merge_trees_valid t1 t2 k =
+  let open Tree in
+  k = order t1 && k = order t2 &&
+  is_valid t1 && is_valid t2
+  ==>
+  is_valid (merge t1 t2)
+[@@auto]
+;;
+
+(** Theorem: a binomial tree of order k has (k d) nodes at depth d. *)
+
+let rec fact n =
+  if n <= 1 then 1 else
+  n * fact (n - 1)
+
+let binomial_coefficient n k =
+  fact n / (fact k * fact (n - k))
+
+(* TODO *)
+let nodes_at_depth_bin_coeff tree k d =
+  let open Tree in
+  is_valid tree && order tree = k ==>
+  nodes_at_depth d tree = binomial_coefficient k d
+
+(** Theorem: A binomial tree of order k has height k. **)
+
+(* TODO *)
+let is_vaild_height t children =
+  t.children = children &&
+  is_valid t ==> height t = order t
+
+(** Theorem: A binomial tree of order k has 2^k nodes. *)
+
+(* TODO *)
+
+(** Binomial heaps *)
+
+module Heap = struct
+  type 'a t = 'a Tree.t list
+
+  let rec is_valid_min_heap_tree' parent_value (children : 'a Tree.t list) : bool =
+    match children with
+    | [] -> true
+    | child :: children' ->
+      child.value >= parent_value &&
+      is_valid_min_heap_tree' child.value child.children &&
+      is_valid_min_heap_tree' parent_value children'
+  [@@adm children]
+
+  let is_valid_min_heap_tree (tree : 'a Tree.t) : bool =
+    is_valid_min_heap_tree' tree.value tree.children
+
+  let rec is_valid' last_order (h : 'a t) : bool =
+    match h with
+    | [] -> true
+    | t :: h' ->
+      Tree.order t > last_order &&
+      Tree.is_valid t &&
+      is_valid_min_heap_tree t &&
+      is_valid' (Tree.order t) h'
+  [@@adm h]
+
+  let is_valid h = is_valid' (-1) h
+
+  let rec insert_tree (t : 'a Tree.t) (h : 'a t) : 'a t =
+    match h with
+    | [] -> [t]
+    | t' :: h' ->
+      if Tree.order t < Tree.order t' then
+        t :: t' :: h'
+      else if Tree.order t' = Tree.order t then
+        insert_tree (Tree.merge t t') h'
+      else
+        t' :: insert_tree t h'
+  [@@adm h]
+end
+;;
+
+instance (fun h -> Heap.is_valid h && List.length h > 2);;
+
+theorem insert_tree_valid t h =
+  Tree.is_valid t && Heap.is_valid_min_heap_tree t && Heap.is_valid h ==>
+  Heap.is_valid (Heap.insert_tree t h)
+[@@auto];;
