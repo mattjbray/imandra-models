@@ -11,6 +11,7 @@ module Tree : sig
   val is_valid' : int -> int -> 'a t list -> bool
     (* TODO: make abstract and move theorems into module when #613 fixed. *)
   val is_valid : 'a t -> bool
+  val is_min_heap : int t -> bool
   val nodes_at_depth : int -> 'a t -> int
   val height : 'a t -> int
 end = struct
@@ -38,6 +39,18 @@ end = struct
   [@@adm children]
 
   let is_valid t = is_valid' (order t) 0 t.children
+
+  let rec is_min_heap' parent_value (children : int t list) : bool =
+    match children with
+    | [] -> true
+    | child :: children' ->
+      child.value >= parent_value &&
+      is_min_heap' child.value child.children &&
+      is_min_heap' parent_value children'
+  [@@adm children]
+
+  let is_min_heap (tree : int t) : bool =
+    is_min_heap' tree.value tree.children
 
   let rec nodes_at_depth' d children =
     if d <= 0 then List.length children else
@@ -80,13 +93,23 @@ lemma is_valid_shift_zero children =
 [@@rw]
 ;;
 
-theorem merge_trees_valid t1 t2 k =
+theorem merge_trees_valid t1 t2 =
   let open Tree in
-  k = order t1 && k = order t2 &&
+  order t1 = order t2 &&
   is_valid t1 && is_valid t2
   ==>
   is_valid (merge t1 t2)
-[@@auto]
+[@@auto][@@rw]
+;;
+
+theorem merge_trees_preserves_min_heap t1 t2 =
+  let open Tree in
+  order t1 = order t2 &&
+  is_valid t1 && is_valid t2 &&
+  is_min_heap t1 && is_min_heap t2
+  ==>
+  is_min_heap (merge t1 t2)
+[@@auto][@@rw]
 ;;
 
 (** Theorem: a binomial tree of order k has (k d) nodes at depth d. *)
@@ -120,25 +143,13 @@ let is_vaild_height t children =
 module Heap = struct
   type 'a t = 'a Tree.t list
 
-  let rec is_valid_min_heap_tree' parent_value (children : 'a Tree.t list) : bool =
-    match children with
-    | [] -> true
-    | child :: children' ->
-      child.value >= parent_value &&
-      is_valid_min_heap_tree' child.value child.children &&
-      is_valid_min_heap_tree' parent_value children'
-  [@@adm children]
-
-  let is_valid_min_heap_tree (tree : 'a Tree.t) : bool =
-    is_valid_min_heap_tree' tree.value tree.children
-
   let rec is_valid' last_order (h : 'a t) : bool =
     match h with
     | [] -> true
     | t :: h' ->
       Tree.order t > last_order &&
       Tree.is_valid t &&
-      is_valid_min_heap_tree t &&
+      Tree.is_min_heap t &&
       is_valid' (Tree.order t) h'
   [@@adm h]
 
@@ -161,6 +172,6 @@ end
 instance (fun h -> Heap.is_valid h && List.length h > 2);;
 
 theorem insert_tree_valid t h =
-  Tree.is_valid t && Heap.is_valid_min_heap_tree t && Heap.is_valid h ==>
+  Tree.is_valid t && Tree.is_min_heap t && Heap.is_valid h ==>
   Heap.is_valid (Heap.insert_tree t h)
 [@@auto];;
