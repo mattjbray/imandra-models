@@ -1,20 +1,7 @@
 #redef;;
 #max_induct 1;;
 
-module Tree : sig
-  type 'a t = { value : 'a; children : 'a t list }
-    (* TODO: make abstract when #612 fixed. *)
-  val value : 'a t -> 'a
-  val order : 'a t -> int
-  val singleton : 'a -> 'a t
-  val merge : int t -> int t -> int t
-  val is_valid' : int -> int -> 'a t list -> bool
-    (* TODO: make abstract and move theorems into module when #613 fixed. *)
-  val is_valid : 'a t -> bool
-  val is_min_heap : int t -> bool
-  val nodes_at_depth : int -> 'a t -> int
-  val height : 'a t -> int
-end = struct
+module Tree = struct
   type 'a t = { value : 'a; children : 'a t list }
 
   let value tree = tree.value
@@ -69,47 +56,43 @@ end = struct
       max (1 + height' child.children) (height' children')
 
   let height tree = height' tree.children
+
+
+  (** Theorem: merging two valid trees results in a valid tree. *)
+
+  lemma is_valid_shift i m children =
+    is_valid' (i + List.length children) i children ==>
+    is_valid' (i + List.length children + m) (i + m) children
+  [@@auto]
+  ;;
+
+  lemma is_valid_shift_zero children =
+    is_valid' (List.length children) 0 children ==>
+    is_valid' (1 + List.length children) 1 children
+  [@@auto]
+  [@@apply is_valid_shift 0 1 children]
+  [@@rw]
+  ;;
+
+  theorem merge_trees_valid t1 t2 =
+    order t1 = order t2 &&
+    is_valid t1 && is_valid t2
+    ==>
+    is_valid (merge t1 t2)
+  [@@auto][@@rw]
+  ;;
+
+  theorem merge_trees_preserves_min_heap t1 t2 =
+    order t1 = order t2 &&
+    is_valid t1 && is_valid t2 &&
+    is_min_heap t1 && is_min_heap t2
+    ==>
+    is_min_heap (merge t1 t2)
+  [@@auto][@@rw] ;;
 end
 ;;
 
 instance Tree.(fun t -> is_valid t && order t = 3 && value t > 0)
-;;
-
-(** Theorem: merging two valid trees results in a valid tree. *)
-
-lemma is_valid_shift i m children =
-  let open Tree in
-  is_valid' (i + List.length children) i children ==>
-  is_valid' (i + List.length children + m) (i + m) children
-[@@auto]
-;;
-
-lemma is_valid_shift_zero children =
-  let open Tree in
-  is_valid' (List.length children) 0 children ==>
-  is_valid' (1 + List.length children) 1 children
-[@@auto]
-[@@apply is_valid_shift 0 1 children]
-[@@rw]
-;;
-
-theorem merge_trees_valid t1 t2 =
-  let open Tree in
-  order t1 = order t2 &&
-  is_valid t1 && is_valid t2
-  ==>
-  is_valid (merge t1 t2)
-[@@auto][@@rw]
-;;
-
-theorem merge_trees_preserves_min_heap t1 t2 =
-  let open Tree in
-  order t1 = order t2 &&
-  is_valid t1 && is_valid t2 &&
-  is_min_heap t1 && is_min_heap t2
-  ==>
-  is_min_heap (merge t1 t2)
-[@@auto][@@rw]
 ;;
 
 (** Theorem: a binomial tree of order k has (k d) nodes at depth d. *)
