@@ -124,37 +124,53 @@ let is_vaild_height t children =
 (** Binomial heaps *)
 
 module Heap = struct
-  type 'a t = 'a Tree.t list
+  type 'a t = 'a Tree.t option list
 
-  let rec is_valid' last_order (h : 'a t) : bool =
+  let rec is_valid' i (h : 'a t) : bool =
     match h with
     | [] -> true
-    | t :: h' ->
-      Tree.order t > last_order &&
+    | Some t :: h' ->
+      Tree.order t = i &&
       Tree.is_valid t &&
       Tree.is_min_heap t &&
-      is_valid' (Tree.order t) h'
+      is_valid' (i + 1) h'
+    | None :: h' -> is_valid' (i + 1) h'
   [@@adm h]
 
-  let is_valid h = is_valid' (-1) h
+  let is_valid h = is_valid' 0 h
 
-  let rec insert_tree (t : 'a Tree.t) (h : 'a t) : 'a t =
-    match h with
-    | [] -> [t]
-    | t' :: h' ->
-      if Tree.order t < Tree.order t' then
-        t :: t' :: h'
-      else if Tree.order t' = Tree.order t then
-        insert_tree (Tree.merge t t') h'
-      else
-        t' :: insert_tree t h'
-  [@@adm h]
+  let insert_tree'_measure i t h =
+    Ordinal.of_int ((Tree.order t - i) + List.length h)
+
+  let rec insert_tree' i (t : 'a Tree.t) (h : 'a t) : 'a t =
+    (* TODO: this check is required to prove this function terminates. Is there
+       some way we could erase the runtime check? *)
+    if not (is_valid' i h && Tree.is_valid t) || i > Tree.order t then [] else
+    if i = Tree.order t then
+      match h with
+      | [] -> [ Some t ]
+      | None :: h' -> Some t :: h'
+      | Some t' :: h' -> None :: insert_tree' (i + 1) (Tree.merge t t') h'
+    else
+      match h with
+      | [] -> None :: insert_tree' (i + 1) t []
+      | t' :: h' -> t' :: insert_tree' (i + 1) t h'
+  [@@measure insert_tree'_measure i t h]
+
+  let insert_tree t h = insert_tree' 0 t h
+
+  lemma insert_tree_valid_corrolary i t h =
+    Tree.is_valid t && Tree.is_min_heap t && is_valid' i h ==>
+    is_valid' i (insert_tree' i t h)
+  [@@auto][@@rw];;
+
+  theorem insert_tree_valid t h =
+    Tree.is_valid t && Tree.is_min_heap t && is_valid h ==>
+    is_valid (insert_tree t h)
+  [@@auto][@@apply insert_tree_valid_corrolary 0 t h][@@rw];;
 end
 ;;
 
-instance (fun h -> Heap.is_valid h && List.length h > 2);;
-
-theorem insert_tree_valid t h =
-  Tree.is_valid t && Tree.is_min_heap t && Heap.is_valid h ==>
-  Heap.is_valid (Heap.insert_tree t h)
-[@@auto];;
+instance (fun h -> Heap.is_valid 0 h && match h with
+| [ Some _; None; _; Some _ ] -> true
+| _ -> false);;
