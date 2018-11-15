@@ -52,7 +52,7 @@ let proper_subterm l m =
 
 (** Defn 1.4.1 FT, the set of free variables of a λ-term *)
 
-let fv m =
+let free_vars m =
   let rec aux binder_depth = function
     | Var x -> if x > binder_depth then [x - binder_depth] else []
     | App (m, n) -> aux binder_depth m @ aux binder_depth n
@@ -63,23 +63,24 @@ let fv m =
 
 (** Defn 1.4.3 Closed λ-term; combinator; Λ⁰ *)
 
-let is_closed m = fv m = []
+let is_closed m = free_vars m = []
 
 (** Defn 1.6.1 Substitution *)
 
-let rec incr_vars = function
-  | Var x -> Var (x + 1)
-  | App (m, n) -> App (incr_vars m, incr_vars n)
-  | Abs m -> Abs (incr_vars m)
+let rec shift d c =
+  function
+  | Var k ->
+    Var (if k < c then k else k + d)
+  | App (m, n) -> App (shift d c m, shift d c n)
+  | Abs m -> Abs (shift d (c + 1) m)
 
 let rec substitute x n m =
   match m with
   | Var y when x = y -> n
   | Var y -> Var y
   | App (m', n') -> App (substitute x n m', substitute x n n')
-  | Abs m' -> Abs (substitute (x + 1) (incr_vars n) m')
+  | Abs m' -> Abs (substitute (x + 1) (shift 1 0 n) m')
 [@@adm m]
-;;
 
 (** Lemma 1.6.5 *)
 
@@ -89,11 +90,11 @@ let rec valid_term = function
   | Abs m -> valid_term m
 ;;
 
-lemma swap_substitutions x y m n l =
-   valid_term m && valid_term n && valid_term l &&
+lemma substitute_commutes x y m n l =
    x > 0 && y > 0 &&
-   x <> y && not (List.mem x (fv l)) ==>
+   valid_term m && valid_term n && valid_term l &&
+   x <> y && not (List.mem x (free_vars l)) ==>
    (m |> substitute x n |> substitute y l)
    =
-   (m |> substitute y l |> substitute x n |> substitute y l)
+   (m |> substitute y l |> substitute x (n |> substitute y l))
 ;;
