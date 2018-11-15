@@ -44,3 +44,23 @@ lemma subterms_trans l m n =
   List.mem l (subterms n)
 [@@auto]
 ;;
+
+(** Defn 1.3.8 Proper subterm *)
+
+let proper_subterm l m =
+  l <> m && List.mem l (subterms m)
+
+(** Defn 1.4.1 FT, the set of free variables of a λ-term *)
+
+let fv m =
+  let rec aux binder_depth = function
+    | Var x -> if x > binder_depth then [x] else []
+    | App (m, n) -> aux binder_depth m @ aux binder_depth n
+    | Abs m -> aux (binder_depth + 1) m
+  in
+  aux 0 m
+;;
+
+(** Defn 1.4.3 Closed λ-term; combinator; Λ⁰ *)
+
+let is_closed m = fv m = []
