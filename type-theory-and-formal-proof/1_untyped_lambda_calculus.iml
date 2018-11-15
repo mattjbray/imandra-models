@@ -1,17 +1,16 @@
 (** Defn 1.3.2 The set Λ of all λ-terms **)
-type var = int
 
 type term =
-  | Var of var
+  | Var of int
   | App of term * term
-  | Abs of var * term
+  | Abs of term
 
 (** Defn 1.3.5 Multiset of subterms *)
 let rec subterms t =
   match t with
   | Var _ -> [t]
   | App (m, n) -> t :: subterms m @ subterms n
-  | Abs (_, m) -> t :: subterms m
+  | Abs m -> t :: subterms m
 ;;
 
 (** Lemma 1.3.6 *)
@@ -22,9 +21,6 @@ lemma subterms_refl m =
   List.mem m (subterms m)
 ;;
 
-#redef;;
-#max_induct 1;;
-
 lemma mem_append_l x xs ys =
    List.mem x xs ==> List.mem x (xs @ ys)
 [@@auto][@@rw]
@@ -33,6 +29,11 @@ lemma mem_append_l x xs ys =
 lemma mem_append_r y xs ys =
    List.mem y ys ==> List.mem y (xs @ ys)
 [@@auto][@@rw]
+;;
+
+lemma mem_append_b x xs ys =
+   List.mem x (xs @ ys) ==> List.mem x xs || List.mem x ys
+[@@auto][@@fc]
 ;;
 
 (** (2) (Transitivity) If L ∈ subterms M and M ∈ subterms N, then L ∈ subterms N *)
