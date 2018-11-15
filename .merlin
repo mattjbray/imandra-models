@@ -1,0 +1,2 @@
+FLG -reader imandra -open Imandra_prelude
+PKG imandra-base.prelude zarith
