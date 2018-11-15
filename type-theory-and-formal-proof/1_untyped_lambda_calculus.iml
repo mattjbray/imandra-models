@@ -1,5 +1,5 @@
 (** Defn 1.3.2 The set Λ of all λ-terms **)
-type var = string
+type var = int
 
 type term =
   | Var of var
@@ -22,10 +22,24 @@ lemma subterms_refl m =
   List.mem m (subterms m)
 ;;
 
+#redef;;
+#max_induct 1;;
+
+lemma mem_append_l x xs ys =
+   List.mem x xs ==> List.mem x (xs @ ys)
+[@@auto][@@rw]
+;;
+
+lemma mem_append_r y xs ys =
+   List.mem y ys ==> List.mem y (xs @ ys)
+[@@auto][@@rw]
+;;
+
 (** (2) (Transitivity) If L ∈ subterms M and M ∈ subterms N, then L ∈ subterms N *)
 
 lemma subterms_trans l m n =
   List.mem l (subterms m) && List.mem m (subterms n)
   ==>
   List.mem l (subterms n)
+[@@auto]
 ;;
