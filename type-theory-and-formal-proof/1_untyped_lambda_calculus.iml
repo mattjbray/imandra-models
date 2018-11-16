@@ -1,16 +1,16 @@
 (** Defn 1.3.2 The set Λ of all λ-terms **)
 
 type term =
-  | Var of int
+  | Var of string * int
   | App of term * term
-  | Abs of term
+  | Abs of string * term
 
 (** Defn 1.3.5 Multiset of subterms *)
 let rec subterms t =
   match t with
   | Var _ -> [t]
   | App (m, n) -> t :: subterms m @ subterms n
-  | Abs m -> t :: subterms m
+  | Abs (_, m) -> t :: subterms m
 ;;
 
 (** Lemma 1.3.6 *)
@@ -53,12 +53,17 @@ let proper_subterm l m =
 (** Defn 1.4.1 FT, the set of free variables of a λ-term *)
 
 let free_vars m =
-  let rec aux binder_depth = function
-    | Var x -> if x > binder_depth then [x - binder_depth] else []
-    | App (m, n) -> aux binder_depth m @ aux binder_depth n
-    | Abs m -> aux (binder_depth + 1) m
+  let rec aux binder_depths = function
+    | Var (x, i) ->
+      let d = Map.get x binder_depths in
+      if i > d then [x, i - d] else []
+    | App (m, n) -> aux binder_depths m @ aux binder_depths n
+    | Abs (x, m) -> aux (binder_depths |> Map.add x (Map.get x binder_depths + 1)) m
   in
-  aux 0 m
+  aux (Map.const 0) m
+;;
+
+free_vars (Abs ("x", (Var ("x", 1))))
 ;;
 
 (** Defn 1.4.3 Closed λ-term; combinator; Λ⁰ *)
