@@ -1,5 +1,7 @@
 (** Defn 1.3.2 The set Λ of all λ-terms **)
 
+(** Vars *)
+
 type var =
   { name : string
   ; idx : int (** De Bruijn index for this name *)
@@ -15,6 +17,10 @@ let pp_var fmt v =
 
 let v ?(i=1) x =
   { name = x; idx = i }
+
+let valid_var v = v.idx > 0
+
+(** Terms *)
 
 type term =
   | Var of var
@@ -34,6 +40,11 @@ let var ?i x =
 let app m n = App (m, n)
 
 let lam x m = Abs (x, m)
+
+let rec valid_term = function
+  | Var v -> valid_var v
+  | App (m, n) -> valid_term m && valid_term n
+  | Abs (_, m) -> valid_term m
 
 (** Defn 1.3.5 Multiset of subterms *)
 let rec subterms t =
@@ -96,6 +107,13 @@ let free_vars m =
 free_vars (lam "x" (var "y"));;
 free_vars (lam "x" (var "x" ~i:2));;
 
+let rec is_free_var v = function
+  | Var u -> v = u
+  | App (m, n) -> is_free_var v m || is_free_var v n
+  | Abs (x, m) when v.name = x -> is_free_var { v with idx = v.idx + 1} m
+  | Abs (_, m) -> is_free_var v m
+[@@adm 1i]
+
 (** Defn 1.4.3 Closed λ-term; combinator; Λ⁰ *)
 
 let is_closed m = free_vars m = []
@@ -130,19 +148,13 @@ substitute (v "x") (var "y") (lam "y" (var "x"));;
 
 (** Lemma 1.6.5 *)
 
-let valid_var v = v.idx > 0
-
-let rec valid_term = function
-  | Var v -> valid_var v
-  | App (m, n) -> valid_term m && valid_term n
-  | Abs (_, m) -> valid_term m
-;;
+#max_induct 1;;
 
 lemma substitute_commutes x y m n l =
   valid_var x && valid_var y &&
   valid_term m && valid_term n && valid_term l &&
   x <> y &&
-  not (List.mem x (free_vars l)) ==>
+  not (is_free_var x l) ==>
   (m |> substitute x n |> substitute y l)
   =
   (m |> substitute y l |> substitute x (n |> substitute y l))
