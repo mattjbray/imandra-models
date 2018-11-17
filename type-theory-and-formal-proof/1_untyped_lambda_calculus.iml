@@ -18,7 +18,14 @@ let pp_var fmt v =
 let v ?(i=1) x =
   { name = x; idx = i }
 
-let valid_var v = v.idx > 0
+let valid_name = function
+  | "x" | "y" | "z" -> true
+  | _ -> false
+
+let valid_var v =
+  v.idx > 0
+  (* un-comment for readable counterexamples *)
+  (* && v.idx < 2 && valid_name v.name *)
 
 (** Terms *)
 
@@ -44,7 +51,10 @@ let lam x m = Abs (x, m)
 let rec valid_term = function
   | Var v -> valid_var v
   | App (m, n) -> valid_term m && valid_term n
-  | Abs (_, m) -> valid_term m
+  | Abs (x, m) ->
+    (* un-comment for readable counterexamples *)
+    (* valid_name x && *)
+    valid_term m
 
 (** Defn 1.3.5 Multiset of subterms *)
 let rec subterms t =
@@ -147,8 +157,7 @@ let rec substitute x n m =
 substitute (v "x") (var "y") (lam "y" (var "x"));;
 
 (** Lemma 1.6.5 *)
-
-#max_induct 1;;
+(* TODO *)
 
 lemma substitute_commutes x y m n l =
   valid_var x && valid_var y &&
@@ -160,3 +169,41 @@ lemma substitute_commutes x y m n l =
   (m |> substitute y l |> substitute x (n |> substitute y l))
 [@@auto]
 ;;
+
+(** Defn 1.8.1 One-step β-reduction *)
+
+let rec beta_reduce_one_step = function
+  | App (Abs (x, m), n) -> substitute (v x) n m
+  | Var x -> Var x
+  | App (m, n) ->
+    (* reduce the lhs first *)
+    let m' = beta_reduce_one_step m in
+    if m = m' then
+      App (m, beta_reduce_one_step n)
+    else
+      App (m', n)
+  | Abs (x, m) -> Abs (x, beta_reduce_one_step m)
+;;
+
+(** Examples 1.8.2 *)
+
+lemma ex_1_8_2_1 n =
+  let x = var "x" in
+  let y = var "y" in
+  (app (lam "x" (app x (app x y))) n |> beta_reduce_one_step) = app n (app n y)
+;;
+lemma ex_1_8_2_2 n =
+  let x, y, z, v = var "x", var "y", var "z", var "v" in
+  (app (lam "x" (app (lam "y" (app y x)) z)) v |> beta_reduce_one_step)
+  = app (lam "y" (app y v)) z
+;;
+
+(** Defn 1.8.3 β-reduction (zero-or-more-step) *)
+
+(* TODO *)
+(* let rec beta_reduce m = *)
+(*   let m' = beta_reduce_one_step m in *)
+(*   if m = m' then *)
+(*     m *)
+(*   else *)
+(*     beta_reduce m' *)
