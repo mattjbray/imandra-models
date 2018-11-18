@@ -36,8 +36,13 @@ type term =
 
 let rec pp_term fmt = function
   | Var v -> pp_var fmt v
-  | App (m, n) -> CCFormat.fprintf fmt "(@[%a@]) (@[%a@])" pp_term m pp_term n
-  | Abs (x, m) -> CCFormat.fprintf fmt "λ%s. @[%a@]" x pp_term m
+  | App (m, n) -> CCFormat.fprintf fmt "@[%a@]@[%a@]" pp_term_parens m pp_term_parens n
+  | Abs (x, m) -> CCFormat.fprintf fmt "λ%s.@[%a@]" x pp_term m
+and pp_term_parens fmt t = match t with
+  | App _
+  | Abs _
+    -> CCFormat.fprintf fmt "(@[%a@])" pp_term t
+  | Var _ -> pp_term fmt t
 [@@program];;
 #install_printer pp_term;;
 
