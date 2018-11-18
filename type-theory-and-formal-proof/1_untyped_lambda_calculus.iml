@@ -175,6 +175,48 @@ lemma substitute_commutes x y m n l =
 [@@auto]
 ;;
 
+(** Defn 1.5.2 α-conversion or α-equivalence *)
+
+let rec alpha_eq m n =
+  match m, n with
+  | Var x, Var y -> x = y
+  | App (m, n), App (m', n') -> alpha_eq m m' && alpha_eq n n'
+  | Abs (x, m), Abs (y, n) when x = y -> alpha_eq m n
+  | Abs (x, m), Abs (y, n) ->
+    alpha_eq
+      m
+      (n
+       |> shift x 1 1 (* incr all free xs in n *)
+       |> substitute (v y) (var x) (* rename all ys bound by this binder to x *)
+       |> shift y (-1) 1 (* decr all free ys in n *)
+      )
+  | _ -> false
+;;
+
+(* #redef;; *)
+lemma alpha_eq_refl m =
+  alpha_eq m m
+[@@auto][@@rw]
+;;
+lemma alpha_eq_symmetric m n =
+  (* valid_term m && valid_term n ==> *)
+  alpha_eq m n = alpha_eq n m
+(* [@@auto] *)
+;;
+
+let ex_1_5_3_1 =
+  (app (lam "x" (app (var "x") (lam "z" (app (var "x") (var "y"))))) (var "z"))
+;;
+
+lemma ex_1_5_3_1a =
+  alpha_eq ex_1_5_3_1 ex_1_5_3_1;;
+lemma ex_1_5_3_1b =
+  alpha_eq ex_1_5_3_1
+  (app (lam "u" (app (var "u") (lam "z" (app (var "u") (var "y"))))) (var "z"));;
+lemma ex_1_5_3_1c =
+  alpha_eq ex_1_5_3_1
+  (app (lam "z" (app (var "z") (lam "x" (app (var "z") (var "y"))))) (var "z"));;
+
 (** Defn 1.8.1 One-step β-reduction *)
 
 let rec beta_reduce_one_step = function
