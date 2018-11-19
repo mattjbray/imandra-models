@@ -274,7 +274,8 @@ lemma lemma_1_7_1_2 m1 n1 m2 n2 =
   ==>
   alpha_eq (lam "x" m1) (lam "x" m2);;
 
-lemma lemma_1_7_1 m1 n1 m2 n2 =
+lemma lemma_1_7_1 x m1 n1 m2 n2 =
+  valid_var x &&
   valid_term m1 &&
   valid_term m2 &&
   valid_term n1 &&
@@ -282,8 +283,10 @@ lemma lemma_1_7_1 m1 n1 m2 n2 =
   alpha_eq m1 m2 && alpha_eq n1 n2
   ==>
   alpha_eq
-    (m1 |> substitute (v "x") n1)
-    (m2 |> substitute (v "x") n2)
+    (m1 |> substitute x n1)
+    (m2 |> substitute x n2)
+(* TODO *)
+(* [@@auto] *)
 ;;
 
 (** Defn 1.8.1 One-step β-reduction *)
