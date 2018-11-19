@@ -1,3 +1,4 @@
+(* #max_induct 1;; *)
 (** Defn 1.3.2 The set Λ of all λ-terms **)
 
 (** Vars *)
@@ -13,7 +14,7 @@ let pp_var fmt v =
   else
     CCFormat.fprintf fmt "%s/%a" v.name Z.pp_print v.idx
 [@@program];;
-#install_printer pp_var;;
+(* #install_printer pp_var;; *)
 
 let v ?(i=1) x =
   { name = x; idx = i }
@@ -44,7 +45,7 @@ and pp_term_parens fmt t = match t with
     -> CCFormat.fprintf fmt "(@[%a@])" pp_term t
   | Var _ -> pp_term fmt t
 [@@program];;
-#install_printer pp_term;;
+(* #install_printer pp_term;; *)
 
 let var ?i x =
   Var (v ?i x)
@@ -138,7 +139,8 @@ let is_closed m = free_vars m = []
 let rec shift x d c =
   function
   | Var v when v.name = x ->
-    Var { v with idx = if v.idx < c then v.idx else v.idx + d }
+    let idx = if v.idx < c then v.idx else v.idx + d in
+    Var { v with idx }
   | Var v -> Var v
   | App (m, n) -> App (shift x d c m, shift x d c n)
   | Abs (y, m) when x = y ->
@@ -162,7 +164,6 @@ let rec substitute x n m =
 substitute (v "x") (var "y") (lam "y" (var "x"));;
 
 (** Lemma 1.6.5 *)
-(* TODO *)
 
 lemma substitute_commutes x y m n l =
   valid_var x && valid_var y &&
@@ -172,7 +173,8 @@ lemma substitute_commutes x y m n l =
   (m |> substitute x n |> substitute y l)
   =
   (m |> substitute y l |> substitute x (n |> substitute y l))
-[@@auto]
+(* TODO *)
+(* [@@auto] *)
 ;;
 
 (** Defn 1.5.2 α-conversion or α-equivalence *)
@@ -186,6 +188,7 @@ let rec alpha_eq m n =
     alpha_eq
       m
       (n
+       (* Rename y -> x *)
        |> shift x 1 1 (* incr all free xs in n *)
        |> substitute (v y) (var x) (* rename all ys bound by this binder to x *)
        |> shift y (-1) 1 (* decr all free ys in n *)
@@ -193,21 +196,29 @@ let rec alpha_eq m n =
   | _ -> false
 ;;
 
-(* #redef;; *)
 lemma alpha_eq_refl m =
   alpha_eq m m
 [@@auto][@@rw]
 ;;
+
 lemma alpha_eq_symmetric m n =
   (* valid_term m && valid_term n ==> *)
   alpha_eq m n = alpha_eq n m
+(* TODO *)
 (* [@@auto] *)
 ;;
 
-let ex_1_5_3_1 =
-  (app (lam "x" (app (var "x") (lam "z" (app (var "x") (var "y"))))) (var "z"))
+lemma alpha_eq_transitive m n l =
+  (* valid_term m && valid_term n ==> *)
+  alpha_eq l m && alpha_eq m n ==> alpha_eq l n
+(* TODO *)
+(* [@@auto] *)
 ;;
 
+(** Examples 1.5.3 *)
+
+let ex_1_5_3_1 =
+  (app (lam "x" (app (var "x") (lam "z" (app (var "x") (var "y"))))) (var "z"));;
 lemma ex_1_5_3_1a =
   alpha_eq ex_1_5_3_1 ex_1_5_3_1;;
 lemma ex_1_5_3_1b =
@@ -216,6 +227,30 @@ lemma ex_1_5_3_1b =
 lemma ex_1_5_3_1c =
   alpha_eq ex_1_5_3_1
   (app (lam "z" (app (var "z") (lam "x" (app (var "z") (var "y"))))) (var "z"));;
+lemma ex_1_5_3_1d =
+  not @@ alpha_eq ex_1_5_3_1
+  (app (lam "y" (app (var "y") (lam "z" (app (var "y") (var "y"))))) (var "z"));;
+lemma ex_1_5_3_1e =
+  not @@ alpha_eq ex_1_5_3_1
+  (app (lam "z" (app (var "z") (lam "z" (app (var "z") (var "y"))))) (var "z"));;
+lemma ex_1_5_3_1f =
+  not @@ alpha_eq ex_1_5_3_1
+  (app (lam "u" (app (var "u") (lam "z" (app (var "u") (var "y"))))) (var "v"));;
+
+let ex_1_5_3_2 =
+  lam "x" (lam "y" (app (app (var "x") (var "z")) (var "y")));;
+lemma ex_1_5_3_2a =
+  alpha_eq ex_1_5_3_2
+    (lam "v" (lam "y" (app (app (var "v") (var "z")) (var "y"))));;
+lemma ex_1_5_3_2b =
+  alpha_eq ex_1_5_3_2
+    (lam "v" (lam "u" (app (app (var "v") (var "z")) (var "u"))));;
+lemma ex_1_5_3_2c =
+  not @@ alpha_eq ex_1_5_3_2
+    (lam "y" (lam "y" (app (app (var "y") (var "z")) (var "y"))));;
+lemma ex_1_5_3_2d =
+  not @@ alpha_eq ex_1_5_3_2
+    (lam "y" (lam "z" (app (app (var "z") (var "z")) (var "y"))));;
 
 (** Defn 1.8.1 One-step β-reduction *)
 
