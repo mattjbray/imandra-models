@@ -298,7 +298,10 @@ lemma lemma_1_7_1_3 x m1 n1 m2 n2 =
 (** Defn 1.8.1 One-step β-reduction *)
 
 let rec beta_reduce_one_step = function
-  | App (Abs (x, m), n) -> substitute (v x) n m
+  | App (Abs (x, m), n) ->
+    m
+    |> substitute (v x) (shift (v x) 1 n)
+    |> shift (v x) (-1)
   | Var x -> Var x
   | App (m, n) ->
     (* reduce the lhs first *)
@@ -313,9 +316,11 @@ let rec beta_reduce_one_step = function
 (** Examples 1.8.2 *)
 
 lemma ex_1_8_2_1 n =
-  let x = var "x" in
-  let y = var "y" in
-  (app (lam "x" (app x (app x y))) n |> beta_reduce_one_step) = app n (app n y)
+  (app (lam "x" (app (var "x") (app (var "x") (var "y")))) n |> beta_reduce_one_step) = app n (app n (var "y"))
+;;
+(* Check de Bruijn indices are handled correctly *)
+lemma ex_1_8_2_1a n =
+  (app (lam "x" (app (var "x") (app (var "x") (var "x" ~i:1)))) n |> beta_reduce_one_step) = app n (app n (var "x"))
 ;;
 lemma ex_1_8_2_2 n =
   let x, y, z, v = var "x", var "y", var "z", var "v" in
