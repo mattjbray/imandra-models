@@ -112,7 +112,7 @@ lemma subterms_trans l m n =
 let proper_subterm l m =
   l <> m && List.mem l (subterms m)
 
-(** Defn 1.4.1 FT, the set of free variables of a λ-term *)
+(** Defn 1.4.1 FV, the set of free variables of a λ-term *)
 
 let rec free_vars' binder_depths = function
     | Var v ->
@@ -314,7 +314,7 @@ lemma lemma_1_7_1_3 x m1 n1 m2 n2 =
 (* [@@auto] *)
 ;;
 
-(** Defn 1.8.1 One-step β-reduction *)
+(** Defn 1.8.1 One-step β-reduction, →β *)
 
 let rec beta_reduce_one_step = function
   | App (Abs (x, m), n) ->
@@ -346,7 +346,7 @@ lemma ex_1_8_2_1 n =
 lemma ex_1_8_2_1a n =
   (app (lam "x" (app (var "x") (app (var "x") (var "x" ~i:1)))) n |> beta_reduce_one_step) = app n (app n (var "x"))
 [@@auto];;
-lemma ex_1_8_2_2 n =
+lemma ex_1_8_2_2 =
   let x, y, z, v = var "x", var "y", var "z", var "v" in
   (app (lam "x" (app (lam "y" (app y x)) z)) v |> beta_reduce_one_step)
   = app (lam "y" (app y v)) z
@@ -393,7 +393,7 @@ lemma beta_reduces_to_refl k m =
 (** (2)(trans) for all L, M and N: if L ↠β M and M ↠β N, then L ↠β N *)
 
 (** lemma: if [m] reduces to [n] in [j] steps, then it also reduces in [k >= j] steps *)
-lemma beta_reduces_to_jk j k m n =
+lemma beta_reduces_to_in_more_steps j k m n =
   k >= j &&
   beta_reduces_to j n m
   ==>
@@ -401,22 +401,20 @@ lemma beta_reduces_to_jk j k m n =
 [@@auto][@@fc]
 ;;
 
-lemma beta_reduces_to_trans_checkpoint i j k m n =
-  i >= 0 &&
+lemma beta_reduces_to_trans_checkpoint j k m n =
+  k >= j &&
   beta_reduces_to j n m &&
-  k >= (i + j) &&
-  k >= 0
+  m <> n
   ==>
-  m = n ||
   beta_reduces_to (-1 + k) n (beta_reduce_one_step m)
-[@@auto][@@apply beta_reduces_to_jk j k m n][@@fc]
+[@@auto][@@apply beta_reduces_to_in_more_steps j k m n][@@fc]
 ;;
 
 lemma beta_reduces_to_trans i j k l m n =
   l |> beta_reduces_to ~k:i m &&
   m |> beta_reduces_to ~k:j n &&
   k >= i + j
-     ==>
+  ==>
   l |> beta_reduces_to ~k n
 [@@auto]
 ;;
