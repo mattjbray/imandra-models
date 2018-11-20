@@ -137,17 +137,18 @@ let is_closed m = free_vars m = []
 
 (** Defn 1.6.1 Substitution *)
 
-let rec shift x d c =
+let rec shift v d =
   function
-  | Var v when v.name = x ->
-    let idx = if v.idx < c then v.idx else v.idx + d in
-    Var { v with idx }
-  | Var v -> Var v
-  | App (m, n) -> App (shift x d c m, shift x d c n)
-  | Abs (y, m) when x = y ->
-    Abs (y, shift x d (c + 1) m)
+  | Var u when v.name = u.name ->
+    let idx = if u.idx < v.idx then u.idx else u.idx + d in
+    Var { u with idx }
+  | Var u -> Var u
+  | App (m, n) -> App (shift v d m, shift v d n)
+  | Abs (y, m) when y = v.name ->
+    Abs (y, shift { v with idx = v.idx + 1 } d m)
   | Abs (y, m) ->
-    Abs (y, shift x d c m)
+    Abs (y, shift v d m)
+[@@adm 2i]
 
 let rec substitute x n m =
   match m with
@@ -156,9 +157,9 @@ let rec substitute x n m =
   | App (m', n') ->
     App (substitute x n m', substitute x n n')
   | Abs (y, m') when x.name = y ->
-    Abs (y, substitute { x with idx = x.idx + 1 } (shift y 1 0 n) m')
+    Abs (y, substitute { x with idx = x.idx + 1 } (shift (v y) 1 n) m')
   | Abs (y, m') ->
-    Abs (y, substitute x (shift y 1 0 n) m')
+    Abs (y, substitute x (shift (v y) 1 n) m')
 [@@adm m]
 ;;
 
@@ -190,9 +191,9 @@ let rec alpha_eq m n =
       m
       (n
        (* Rename y -> x *)
-       |> shift x 1 0 (* incr all free xs in n *)
+       |> shift (v x) 1 (* incr all free xs in n *)
        |> substitute (v y) (var x) (* rename all ys bound by this binder to x *)
-       |> shift y (-1) 0 (* decr all free ys in n *)
+       |> shift (v y) (-1) (* decr all free ys in n *)
       )
   | _ -> false
 ;;
