@@ -319,10 +319,9 @@ lemma ex_1_8_2_2 n =
 
 (** Defn 1.8.3 β-reduction (zero-or-more-step) *)
 
-(* TODO *)
-(* let rec beta_reduce m = *)
-(*   let m' = beta_reduce_one_step m in *)
-(*   if m = m' then *)
-(*     m *)
-(*   else *)
-(*     beta_reduce m' *)
+let rec beta_reduce k m =
+  let m' = beta_reduce_one_step m in
+  if m = m' || k < 0 then
+    m
+  else
+    beta_reduce (k-1) m'
