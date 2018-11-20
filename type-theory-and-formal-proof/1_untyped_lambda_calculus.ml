@@ -114,15 +114,14 @@ let proper_subterm l m =
 
 (** Defn 1.4.1 FT, the set of free variables of a λ-term *)
 
-let free_vars m =
-  let rec aux binder_depths = function
+let rec free_vars' binder_depths = function
     | Var v ->
       let d = Map.get v.name binder_depths in
-      if v.idx > d then [ { v with idx = v.idx - d } ] else []
-    | App (m, n) -> aux binder_depths m @ aux binder_depths n
-    | Abs (x, m) -> aux (binder_depths |> Map.add x (Map.get x binder_depths + 1)) m
-  in
-  aux (Map.const (-1)) m
+      if v.idx >= d then [ { v with idx = v.idx - d } ] else []
+    | App (m, n) -> free_vars' binder_depths m @ free_vars' binder_depths n
+    | Abs (x, m) -> free_vars' (binder_depths |> Map.add x (Map.get x binder_depths + 1)) m
+
+let free_vars m = free_vars' (Map.const 0) m
 ;;
 
 free_vars (lam "x" (var "y"));;
