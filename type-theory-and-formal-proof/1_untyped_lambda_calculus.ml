@@ -1,6 +1,6 @@
 [@@@redef];;
 [@@@max_induct 1i];;
-[@@@unroll 30i];;
+[@@@unroll 35i];;
 (** Defn 1.3.2 The set Λ of all λ-terms **)
 
 (** Vars *)
@@ -179,6 +179,13 @@ substitute (v "x") (var "y") (lam "y" (var "x"));;
 
 (** Lemma 1.6.5 *)
 
+lemma substitute_non_free_var_is_id x m n =
+  not (is_free_var x m)
+  ==>
+  (m |> substitute x n) = m
+[@@auto][@@rw]
+;;
+
 lemma substitute_commutes x y m n l =
   valid_var x && valid_var y &&
   valid_term m && valid_term n && valid_term l &&
@@ -188,7 +195,7 @@ lemma substitute_commutes x y m n l =
   =
   (m |> substitute y l |> substitute x (n |> substitute y l))
 (* TODO *)
-(* [@@auto] *)
+(* [@@auto][@@induct structural m] *)
 ;;
 
 (** Defn 1.5.2 α-conversion or α-equivalence *)
@@ -360,6 +367,7 @@ let rec beta_reduces_to ~k n m =
   (m = n || beta_reduces_to ~k:(k-1) n (beta_reduce_one_step m))
 ;;
 
+(** Example 1.8.3 (λx.(λy.yx)z)v ↠β zv *)
 lemma ex_1_8_3 =
   app (lam "x" (app (lam "y" (app (var "y") (var "x"))) (var "z"))) (var "v")
   |> beta_reduces_to ~k:2 (app (var "z") (var "v"))
