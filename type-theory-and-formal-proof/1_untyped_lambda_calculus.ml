@@ -1,5 +1,6 @@
 [@@@redef];;
 [@@@max_induct 1i];;
+[@@@unroll 30i];;
 (** Defn 1.3.2 The set Λ of all λ-terms **)
 
 (** Vars *)
