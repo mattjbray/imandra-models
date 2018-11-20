@@ -132,7 +132,16 @@ let rec is_free_var v = function
   | App (m, n) -> is_free_var v m || is_free_var v n
   | Abs (x, m) when v.name = x -> is_free_var { v with idx = v.idx + 1} m
   | Abs (_, m) -> is_free_var v m
-[@@adm 1i]
+[@@adm 1i];;
+
+lemma free_vars'_is_free_var binder_depths v m =
+  valid_var v && valid_term m &&
+  Map.get v.name binder_depths = 0
+  ==>
+  List.mem v (free_vars' binder_depths m) = is_free_var v m
+(* TODO *)
+(* [@@auto] *)
+;;
 
 (** Defn 1.4.3 Closed λ-term; combinator; Λ⁰ *)
 
