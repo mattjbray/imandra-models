@@ -315,13 +315,18 @@ let rec beta_reduce_one_step = function
 
 (** Examples 1.8.2 *)
 
+lemma shift_up_down x m =
+  shift x (-1) (shift x 1 m) = m
+[@@auto][@@rw]
+;;
+
 lemma ex_1_8_2_1 n =
   (app (lam "x" (app (var "x") (app (var "x") (var "y")))) n |> beta_reduce_one_step) = app n (app n (var "y"))
-;;
+[@@auto];;
 (* Check de Bruijn indices are handled correctly *)
 lemma ex_1_8_2_1a n =
   (app (lam "x" (app (var "x") (app (var "x") (var "x" ~i:1)))) n |> beta_reduce_one_step) = app n (app n (var "x"))
-;;
+[@@auto];;
 lemma ex_1_8_2_2 n =
   let x, y, z, v = var "x", var "y", var "z", var "v" in
   (app (lam "x" (app (lam "y" (app y x)) z)) v |> beta_reduce_one_step)
