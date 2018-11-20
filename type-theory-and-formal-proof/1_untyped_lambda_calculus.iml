@@ -1,5 +1,5 @@
-(* #redef;; *)
-(* #max_induct 1;; *)
+[@@@redef];;
+[@@@max_induct 1i];;
 (** Defn 1.3.2 The set Λ of all λ-terms **)
 
 (** Vars *)
@@ -13,9 +13,9 @@ let pp_var fmt v =
   if v.idx = 0 then
     CCFormat.fprintf fmt "%s" v.name
   else
-    CCFormat.fprintf fmt "%s/%a" v.name Z.pp_print v.idx
+    CCFormat.fprintf fmt "(%s/%a)" v.name Z.pp_print v.idx
 [@@program];;
-(* #install_printer pp_var;; *)
+[@@@install_printer pp_var];;
 
 let v ?(i=0) x =
   { name = x; idx = i }
@@ -46,7 +46,7 @@ and pp_term_parens fmt t = match t with
     -> CCFormat.fprintf fmt "(@[%a@])" pp_term t
   | Var _ -> pp_term fmt t
 [@@program];;
-(* #install_printer pp_term;; *)
+[@@@install_printer pp_term];;
 
 let var ?i x =
   Var (v ?i x)
