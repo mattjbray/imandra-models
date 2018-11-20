@@ -263,19 +263,24 @@ lemma ex_1_5_3_2d =
   (lam "y" (lam "z" (app (app (var "z") (var "z")) (var "y"))))
 [@@simp];;
 
-(** Lemma 1.7.1 *)
+(** Lemma 1.7.1 Let M₁ =α M₂ and N₁ =α N₂. Then also:
+    NOTE: typo in the textbook?
+*)
 
+(** (1) M₁N₁ =α M₂N₂ *)
 lemma lemma_1_7_1_1 m1 n1 m2 n2 =
   alpha_eq m1 m2 && alpha_eq n1 n2
   ==>
   alpha_eq (app m1 n1) (app m2 n2);;
 
+(** (2) λx. M₁ =α λx. M₂ *)
 lemma lemma_1_7_1_2 m1 n1 m2 n2 =
   alpha_eq m1 m2 && alpha_eq n1 n2
   ==>
   alpha_eq (lam "x" m1) (lam "x" m2);;
 
-lemma lemma_1_7_1 x m1 n1 m2 n2 =
+(** (3) M₁[x := N₁] =α M₂[x := N₂] *)
+lemma lemma_1_7_1_3 x m1 n1 m2 n2 =
   valid_var x &&
   valid_term m1 &&
   valid_term m2 &&
