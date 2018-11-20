@@ -11,10 +11,13 @@ type var =
   }
 
 let pp_var fmt v =
+  let name =
+    if v.name = "" then "_" else v.name
+  in
   if v.idx = 0 then
-    CCFormat.fprintf fmt "%s" v.name
+    CCFormat.fprintf fmt "%s" name
   else
-    CCFormat.fprintf fmt "(%s/%a)" v.name Z.pp_print v.idx
+    CCFormat.fprintf fmt "(%s/%a)" name Z.pp_print v.idx
 [@@program];;
 [@@@install_printer pp_var];;
 
