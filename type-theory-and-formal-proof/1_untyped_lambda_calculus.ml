@@ -52,11 +52,9 @@ and pp_term_parens fmt t = match t with
 [@@program];;
 [@@@install_printer pp_term];;
 
-let var ?i x =
-  Var (v ?i x)
-
+(** Convenience functions for constructing terms *)
+let var ?i x = Var (v ?i x)
 let app m n = App (m, n)
-
 let lam x m = Abs (x, m)
 
 let rec valid_term = function
