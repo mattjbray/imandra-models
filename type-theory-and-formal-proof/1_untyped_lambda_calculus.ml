@@ -79,28 +79,23 @@ let rec subterms t =
 
 (** (1) (Reflexivity) For all λ-terms M, we have M ∈ subterms M*)
 
-lemma subterms_refl m =
+theorem subterms_refl m =
   List.mem m (subterms m)
-;;
-
-lemma mem_append_l x xs ys =
-   List.mem x xs ==> List.mem x (xs @ ys)
-[@@auto][@@rw]
-;;
-
-lemma mem_append_r y xs ys =
-   List.mem y ys ==> List.mem y (xs @ ys)
-[@@auto][@@rw]
-;;
-
-lemma mem_append_b x xs ys =
-   List.mem x (xs @ ys) ==> List.mem x xs || List.mem x ys
-[@@auto][@@fc]
 ;;
 
 (** (2) (Transitivity) If L ∈ subterms M and M ∈ subterms N, then L ∈ subterms N *)
 
-lemma subterms_trans l m n =
+lemma mem_append_rw x xs ys =
+   List.mem x xs || List.mem x ys ==> List.mem x (xs @ ys)
+[@@auto][@@rw]
+;;
+
+lemma mem_append_fc x xs ys =
+   List.mem x (xs @ ys) ==> List.mem x xs || List.mem x ys
+[@@auto][@@fc]
+;;
+
+theorem subterms_trans l m n =
   List.mem l (subterms m) && List.mem m (subterms n)
   ==>
   List.mem l (subterms n)
@@ -186,7 +181,7 @@ lemma substitute_non_free_var_is_id x m n =
 [@@auto][@@rw]
 ;;
 
-lemma substitute_commutes x y m n l =
+theorem substitute_commutes x y m n l =
   valid_var x && valid_var y &&
   valid_term m && valid_term n && valid_term l &&
   x <> y &&
@@ -217,19 +212,19 @@ let rec alpha_eq m n =
   | _ -> false
 ;;
 
-lemma alpha_eq_refl m =
+theorem alpha_eq_refl m =
   alpha_eq m m
 [@@auto][@@rw]
 ;;
 
-lemma alpha_eq_symmetric m n =
+theorem alpha_eq_symmetric m n =
   (* valid_term m && valid_term n ==> *)
   alpha_eq m n = alpha_eq n m
 (* TODO *)
 (* [@@auto] *)
 ;;
 
-lemma alpha_eq_transitive m n l =
+theorem alpha_eq_transitive m n l =
   (* valid_term m && valid_term n ==> *)
   alpha_eq l m && alpha_eq m n ==> alpha_eq l n
 (* TODO *)
@@ -287,19 +282,19 @@ lemma ex_1_5_3_2d =
 *)
 
 (** (1) M₁N₁ =α M₂N₂ *)
-lemma lemma_1_7_1_1 m1 n1 m2 n2 =
+theorem lemma_1_7_1_1 m1 n1 m2 n2 =
   alpha_eq m1 m2 && alpha_eq n1 n2
   ==>
   alpha_eq (app m1 n1) (app m2 n2);;
 
 (** (2) λx. M₁ =α λx. M₂ *)
-lemma lemma_1_7_1_2 m1 n1 m2 n2 =
+theorem lemma_1_7_1_2 m1 n1 m2 n2 =
   alpha_eq m1 m2 && alpha_eq n1 n2
   ==>
   alpha_eq (lam "x" m1) (lam "x" m2);;
 
 (** (3) M₁[x := N₁] =α M₂[x := N₂] *)
-lemma lemma_1_7_1_3 x m1 n1 m2 n2 =
+theorem lemma_1_7_1_3 x m1 n1 m2 n2 =
   valid_var x &&
   valid_term m1 &&
   valid_term m2 &&
@@ -377,7 +372,7 @@ lemma ex_1_8_3 =
 
 (** (1) ↠β extends →β *)
 
-lemma beta_reduces_to_extends_one_step k m n =
+theorem beta_reduces_to_extends_one_step k m n =
   k >= 1 &&
   beta_reduce_one_step m = n ==>
   m |> beta_reduces_to ~k n
@@ -385,7 +380,7 @@ lemma beta_reduces_to_extends_one_step k m n =
 
 (** (2)(refl) for all M: M ↠β M *)
 
-lemma beta_reduces_to_refl k m =
+theorem beta_reduces_to_refl k m =
   k >= 0 ==>
   beta_reduces_to ~k m m
 ;;
@@ -410,7 +405,7 @@ lemma beta_reduces_to_trans_checkpoint j k m n =
 [@@auto][@@apply beta_reduces_to_in_more_steps j k m n][@@fc]
 ;;
 
-lemma beta_reduces_to_trans i j k l m n =
+theorem beta_reduces_to_trans i j k l m n =
   l |> beta_reduces_to ~k:i m &&
   m |> beta_reduces_to ~k:j n &&
   k >= i + j
