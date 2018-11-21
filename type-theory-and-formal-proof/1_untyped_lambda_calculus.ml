@@ -212,7 +212,9 @@ let rec alpha_eq m n =
 
 theorem alpha_eq_refl m =
   alpha_eq m m
-[@@auto][@@rw]
+[@@auto]
+[@@disable is_free_var, shift, substitute]
+[@@rw]
 ;;
 
 theorem alpha_eq_symmetric m n =
@@ -391,7 +393,9 @@ lemma beta_reduces_to_in_more_steps j k m n =
   beta_reduces_to j n m
   ==>
   beta_reduces_to k n m
-[@@auto][@@fc]
+[@@auto]
+[@@disable is_free_var, substitute, shift]
+[@@fc]
 ;;
 
 lemma beta_reduces_to_trans_checkpoint j k m n =
@@ -400,7 +404,10 @@ lemma beta_reduces_to_trans_checkpoint j k m n =
   m <> n
   ==>
   beta_reduces_to (-1 + k) n (beta_reduce_one_step m)
-[@@auto][@@apply beta_reduces_to_in_more_steps j k m n][@@fc]
+[@@auto]
+[@@apply beta_reduces_to_in_more_steps j k m n]
+[@@disable is_free_var, substitute, shift]
+[@@fc]
 ;;
 
 theorem beta_reduces_to_trans i j k l m n =
@@ -410,4 +417,5 @@ theorem beta_reduces_to_trans i j k l m n =
   ==>
   l |> beta_reduces_to ~k n
 [@@auto]
+[@@disable is_free_var, substitute, shift]
 ;;
