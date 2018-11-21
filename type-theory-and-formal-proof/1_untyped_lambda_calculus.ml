@@ -374,6 +374,7 @@ lemma beta_reduce_beta_reduces_to_equiv k m n =
   beta_reduce k m = n ==>
   m |> beta_reduces_to ~k n
 [@@auto]
+[@@disable is_free_var, substitute, shift]
 ;;
 
 (** Lemma 1.8.4 *)
