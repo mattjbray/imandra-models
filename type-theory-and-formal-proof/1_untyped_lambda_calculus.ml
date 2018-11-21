@@ -351,7 +351,7 @@ lemma ex_1_8_2_2 =
 
 let rec beta_reduce k m =
   let m' = beta_reduce_one_step m in
-  if m = m' || k < 0 then
+  if m = m' || k <= 0 then
     m
   else
     beta_reduce (k-1) m'
@@ -366,6 +366,14 @@ let rec beta_reduces_to ~k n m =
 lemma ex_1_8_3 =
   app (lam "x" (app (lam "y" (app (var "y") (var "x"))) (var "z"))) (var "v")
   |> beta_reduces_to ~k:2 (app (var "z") (var "v"))
+;;
+
+(** Ensure beta_reduce and beta_reduces_to are consistent *)
+lemma beta_reduce_beta_reduces_to_equiv k m n =
+  k >= 0 &&
+  beta_reduce k m = n ==>
+  m |> beta_reduces_to ~k n
+[@@auto]
 ;;
 
 (** Lemma 1.8.4 *)
