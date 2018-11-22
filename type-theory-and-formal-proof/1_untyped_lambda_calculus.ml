@@ -359,7 +359,8 @@ let rec beta_reduce k m =
 (** [beta_reduces_to k n m] is true if [m] ↠β [n] in [i <= k] steps *)
 let rec beta_reduces_to ~k n m =
   k >= 0 &&
-  (m = n || beta_reduces_to ~k:(k-1) n (beta_reduce_one_step m))
+  (m = n ||
+   beta_reduces_to ~k:(k-1) n (beta_reduce_one_step m))
 ;;
 
 (** Example 1.8.3 (λx.(λy.yx)z)v ↠β zv *)
@@ -427,4 +428,41 @@ theorem beta_reduces_to_trans i j k l m n =
   l |> beta_reduces_to ~k n
 [@@auto]
 [@@disable is_free_var, substitute, shift]
+[@@fc]
+;;
+
+(** Defn 1.8.5 (β-conversion, β-equality) *)
+
+let rec beta_eq ~j ~k m n =
+  j >= 0 &&
+  (m |> beta_reduces_to ~k n ||
+   beta_eq ~j:(j-1) ~k m (beta_reduce_one_step n))
+;;
+
+let ex_1_8_5_terms =
+  let x, y, z, v = var "x", var "y", var "z", var "v" in
+  [ app (lam "x" (app (lam "y" (app y x)) z)) v
+  ; app (lam "y" (app y v)) z
+  ; app (lam "x" (app z x)) v
+  ; app z v
+  ]
+
+lemma ex_1_8_5 =
+  ex_1_8_5_terms |> List.for_all (fun m ->
+        ex_1_8_5_terms |> List.for_all (fun n ->
+            beta_eq ~j:2 ~k:2 m n))
+[@@simp];;
+
+(** Lemma 1.8.6 *)
+
+(** (1) =β extends ↠β in both directions *)
+
+theorem beta_eq_extends_beta_reduces_to m n j k =
+  (j >= 0 && m |> beta_reduces_to n ~k) ||
+  (k >= 0 && n |> beta_reduces_to m ~k:j)
+  ==>
+  beta_eq ~k ~j m n
+[@@auto]
+[@@disable is_free_var, shift, substitute]
+[@@rw]
 ;;
