@@ -531,3 +531,38 @@ theorem fixed_point l =
 let y_combinator =
   let m = make_fixed_point (var "y") in
   lam "y" m
+
+
+(** Exercises *)
+
+(** 1.9 *)
+
+let x = var "x"
+let y = var "y"
+let z = var "z"
+
+let k = lam "x" (lam "y" x)
+let s = lam "x" (lam "y" (lam "z" (app (app x z) (app y z))))
+;;
+lemma ex_1_9_a p q =
+  valid_term p && valid_term q ==>
+  app (app k p) q |> beta_reduces_to p ~k:2
+;;
+
+(** 1.10 *)
+
+let f = var "f"
+let m = var "m"
+let n = var "n"
+let zero =
+  lam "f" (lam "x" x)
+let one =
+  lam "f" (lam "x" (app f x))
+let two =
+  lam "f" (lam "x" (app f (app f x)))
+let add =
+  lam "m" (lam "n" (lam "f" (lam "x" (app (app m f) (app (app n f) x)))))
+let mult =
+  lam "m" (lam "n" (lam "f" (lam "x" (app (app m (app n f)) x))))
+;;
+(app (app add one) one |> beta_reduces_to two ~k:10);;
