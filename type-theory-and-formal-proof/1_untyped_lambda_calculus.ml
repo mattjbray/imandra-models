@@ -466,3 +466,34 @@ theorem beta_eq_extends_beta_reduces_to m n j k =
 [@@disable is_free_var, shift, substitute]
 [@@rw]
 ;;
+
+(** (2)(refl) *)
+
+theorem beta_eq_refl j k m =
+  j >= 0 && k >= 0 ==>
+  beta_eq ~j ~k m m
+[@@rw]
+;;
+
+(** (2)(symm) *)
+
+theorem beta_eq_symm j k m n =
+  beta_eq j k m n
+  ==>
+  beta_eq k j n m
+(* TODO *)
+(* [@@auto] *)
+(* [@@disable is_free_var, shift, substitute] *)
+;;
+
+(** (3)(trans) *)
+
+theorem beta_eq_trans j1 k1 j2 k2 l m n =
+  beta_eq j1 k1 l m &&
+  beta_eq j2 k2 m n
+  ==>
+  beta_eq (j1 + j2) (k1 + k2) l n
+(* TODO *)
+(* [@@auto] *)
+(* [@@disable is_free_var, shift, substitute] *)
+;;
