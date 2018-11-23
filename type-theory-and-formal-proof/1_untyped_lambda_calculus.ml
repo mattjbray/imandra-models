@@ -512,3 +512,22 @@ theorem beta_eq_trans j1 k1 j2 k2 l m n =
         (1) If M has N as β-normal form, then M ↠β N.
         (2) A λ-term has at most one β-normal form.
 *)
+
+(** Theorem 1.10.1 (Fixed point theorem) *)
+
+let make_fixed_point l =
+  let x = var "x" in
+  let l' = shift (v "x") 1 l in
+  app (lam "x" (app l' (app x x))) (lam "x" (app l' (app x x)))
+;;
+
+theorem fixed_point l =
+  let m = make_fixed_point l in
+  beta_reduce_one_step m = app l m
+(* TODO *)
+(* [@@auto] *)
+;;
+
+let y_combinator =
+  let m = make_fixed_point (var "y") in
+  lam "y" m
