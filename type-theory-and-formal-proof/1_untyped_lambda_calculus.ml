@@ -497,3 +497,18 @@ theorem beta_eq_trans j1 k1 j2 k2 l m n =
 (* [@@auto] *)
 (* [@@disable is_free_var, shift, substitute] *)
 ;;
+
+(** Still TODO
+    - Defn 1.9.1 (β-normal form; β-nf; β-normalising)
+    - Lemma 1.9.2 When M is in β-nf, then M ↠β N implies M ≡ N
+    - Defn 1.9.5 (Reduction path)
+    - Defn 1.9.6 (Weak normalisation, strong normalisation)
+    - Theorem 1.9.8 (Church-Rosser; CR; Confluence)
+        Suppose, for a given λ-term M, we have M ↠β N₁ and M ↠β N₂.
+        Then there is a λ-term N₃ such that N₁ ↠β N₃ and N₂ ↠β N₃.
+    - Corollary 1.9.9
+        Suppose that M =β N. Then there is L such that M ↠β L and N ↠β L.
+    - Lemma 1.9.10
+        (1) If M has N as β-normal form, then M ↠β N.
+        (2) A λ-term has at most one β-normal form.
+*)
