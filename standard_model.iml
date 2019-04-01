@@ -1,11 +1,15 @@
 module Spin = struct
   type direction = Up | Down
 
+  let reverse_direction = function | Up -> Down | Down -> Up
+
   type t = { magnitude : Q.t; direction : direction }
 
   let make ?(direction=Up) magnitude = { magnitude; direction}
 
   let magnitude s = s.magnitude
+
+  let reverse t = { t with direction = reverse_direction t.direction }
 
   let (+) t1 t2 =
     let s1 = Real.(t1.magnitude * match t1.direction with | Up -> 1.0 | Down -> (-1.0)) in
@@ -16,16 +20,40 @@ module Spin = struct
     { magnitude; direction }
 end
 
+type w_type = Plus | Neg
+
+type vector_boson =
+  | Gluon
+  | Photon
+  | W of w_type
+  | Z
+
+type scalar_boson =
+  | Higgs
+
+type boson =
+  | Vector of vector_boson
+  | Scalar of scalar_boson
+
 module Quark = struct
-  type q = Up | Down | Charm | Strange | Top | Bottom
+  type flavor = Up | Down | Charm | Strange | Top | Bottom
+
+  type flavor_type = Up | Down
+
+  let flavor_type : flavor -> flavor_type = function
+    | Up | Charm | Top -> Up
+    | Down | Strange | Bottom -> Down
+
+  type color = Red | Green | Blue
 
   type t =
-    { q : q
+    { flavor : flavor
+    ; color : color
     ; spin_dir : Spin.direction
     }
 
-  let make ?(spin_dir=Spin.Up) q =
-    { q; spin_dir }
+  let make ?(spin_dir=Spin.Up) ?(color=Red) flavor =
+    { flavor; color; spin_dir }
 
   let up = make Up
   let down = make Down
@@ -34,8 +62,74 @@ module Quark = struct
   let top = make Top
   let bottom = make Bottom
 
+  let flavor t = t.flavor
+  let color t = t.color
+
   let spin t = Spin.make ~direction:t.spin_dir 0.5
+
+  let charge t =
+    match flavor_type t.flavor with
+    | Up -> Real.(2.0 / 3.0)
+    | Down -> Real.(-1.0 / 3.0)
+
+  let absorb boson t =
+    match boson with
+    | Scalar Higgs
+    | Vector Gluon
+    | Vector Photon
+    | Vector Z
+    -> [ (Some boson, t) ] (* No interaction *)
+    | Vector (W Plus) ->
+      begin match flavor_type t.flavor with
+      | Down ->
+          [ (Some boson, t) (* No interaction *)
+          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Up })
+          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Charm })
+          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Top })
+          ]
+      | Up ->
+          [ (Some boson, t) (* No interaction *)
+          ]
+      end
+    | Vector (W Neg) ->
+      begin match flavor_type t.flavor with
+      | Down ->
+          [ (Some boson, t) (* No interaction *)
+          ]
+      | Up ->
+          [ (Some boson, t) (* No interaction *)
+          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Down })
+          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Strange })
+          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Bottom })
+          ]
+      end
 end
+;;
+
+(** If the boson is absorbed, the quark's spin is reversed. *)
+verify (fun boson quark ->
+    let outcomes = Quark.absorb boson quark in
+    outcomes |> List.for_all (fun (b, q) ->
+        match b with
+        | Some _ -> Quark.spin q = Quark.spin quark
+        | None -> Quark.spin q = Spin.reverse (Quark.spin quark)
+      )
+  );;
+
+(** If the boson is absorbed, Up-type quarks become Down-type quarks, and vice versa. *)
+verify (fun boson quark ->
+    let outcomes = Quark.absorb boson quark in
+    outcomes |> List.for_all (fun (b, q) ->
+        match b with
+        | Some _ -> Quark.flavor q = Quark.flavor quark
+        | None ->
+          begin match (Quark.flavor_type (Quark.flavor quark), Quark.flavor_type (Quark.flavor q)) with
+            | Down, Up
+            | Up, Down -> true
+            | _ -> false
+          end
+      )
+  );;
 
 module Lepton = struct
   type l =
@@ -51,19 +145,6 @@ end
 (*   | Quark of quark *)
 (*   | Lepton of lepton *)
 
-(* type vector_boson = *)
-(*   | Gluon *)
-(*   | Photon *)
-(*   | W *)
-(*   | Z *)
-
-(* type scalar_boson = *)
-(*   | Higgs *)
-
-(* type boson = *)
-(*   | Vector of vector_boson *)
-(*   | Scalar of scalar_boson *)
-
 (* type family = *)
 (*   | Fermion of fermion *)
 (*   | Boson of boson *)
@@ -77,12 +158,20 @@ module Baryon = struct
 
     let spin t =
       Spin.(Quark.spin t.q1 + Quark.spin t.q2 + Quark.spin t.q3)
+
+    let charge t =
+      Real.(Quark.charge t.q1 + Quark.charge t.q2 + Quark.charge t.q3)
 end
 ;;
 
 verify (fun baryon ->
     let s = Spin.magnitude (Baryon.spin baryon) in
-    s = 0.5 || s = 1.5
+    List.mem s [ 1.5; 0.5 ]
+  );;
+
+verify (fun baryon ->
+    let c = Baryon.charge baryon in
+    List.mem c [ 2.0; 1.0; 0.0; -1.0 ]
   );;
 
 
@@ -94,4 +183,18 @@ module Meson = struct
 
   let spin t =
     Spin.(Quark.spin t.q + Quark.spin t.anti_q)
+
+  let charge t =
+    Real.(Quark.charge t.q - Quark.charge t.anti_q)
 end
+;;
+
+verify (fun meson ->
+    let s = Spin.magnitude (Meson.spin meson) in
+    List.mem s [ 0.0; 1.0 ]
+  );;
+
+verify (fun meson ->
+    let c = Meson.charge meson in
+    List.mem c [ 1.0; 0.0; -1.0 ]
+  );;
