@@ -20,20 +20,33 @@ module Spin = struct
     { magnitude; direction }
 end
 
-type w_type = Plus | Neg
+module Boson = struct
+  type w_type = Plus | Neg
 
-type vector_boson =
-  | Gluon
-  | Photon
-  | W of w_type
-  | Z
+  type vector_boson =
+    | Gluon
+    | Photon
+    | W of w_type
+    | Z
 
-type scalar_boson =
-  | Higgs
+  type scalar_boson =
+    | Higgs
 
-type boson =
-  | Vector of vector_boson
-  | Scalar of scalar_boson
+  type boson =
+    | Vector of vector_boson
+    | Scalar of scalar_boson
+
+  type t =
+    { boson_t : boson
+    ; spin_dir : Spin.direction
+    }
+
+  let make ~boson_t ~spin_dir () =
+    { boson_t; spin_dir }
+
+  let boson_t t = t.boson_t
+  let spin t = Spin.make ~direction:t.spin_dir 1.0
+end
 
 module Quark = struct
   type flavor = Up | Down | Charm | Strange | Top | Bottom
@@ -72,8 +85,11 @@ module Quark = struct
     | Up -> Real.(2.0 / 3.0)
     | Down -> Real.(-1.0 / 3.0)
 
+  let reverse_spin t =
+    { t with spin_dir = Spin.reverse_direction t.spin_dir }
+
   let absorb boson t =
-    match boson with
+    match Boson.boson_t boson with
     | Scalar Higgs
     | Vector Gluon
     | Vector Photon
@@ -83,9 +99,9 @@ module Quark = struct
       begin match flavor_type t.flavor with
       | Down ->
           [ (Some boson, t) (* No interaction *)
-          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Up })
-          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Charm })
-          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Top })
+          ; (None, { t with flavor = Up } |> reverse_spin)
+          ; (None, { t with flavor = Charm } |> reverse_spin)
+          ; (None, { t with flavor = Top } |> reverse_spin)
           ]
       | Up ->
           [ (Some boson, t) (* No interaction *)
@@ -98,11 +114,34 @@ module Quark = struct
           ]
       | Up ->
           [ (Some boson, t) (* No interaction *)
-          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Down })
-          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Strange })
-          ; (None, { t with spin_dir = Spin.reverse_direction t.spin_dir; flavor = Bottom })
+          ; (None, { t with flavor = Down } |> reverse_spin)
+          ; (None, { t with flavor = Strange } |> reverse_spin)
+          ; (None, { t with flavor = Bottom } |> reverse_spin)
           ]
       end
+
+  let emit t : (Boson.t option * t) list =
+    match flavor_type t.flavor with
+    | Up ->
+      let boson =
+        Boson.make ()
+          ~boson_t:(Vector (W Plus)) ~spin_dir:t.spin_dir
+      in
+      [ (None, t) (* No emission *)
+      ; (Some boson, { t with flavor = Down } |> reverse_spin)
+      ; (Some boson, { t with flavor = Strange } |> reverse_spin)
+      ; (Some boson, { t with flavor = Bottom } |> reverse_spin)
+      ]
+    | Down ->
+      let boson =
+        Boson.make ()
+          ~boson_t:(Vector (W Neg)) ~spin_dir:t.spin_dir
+      in
+      [ (None, t) (* No emission *)
+      ; (Some boson, { t with flavor = Up } |> reverse_spin)
+      ; (Some boson, { t with flavor = Charm } |> reverse_spin)
+      ; (Some boson, { t with flavor = Top } |> reverse_spin)
+      ]
 end
 ;;
 
@@ -130,6 +169,36 @@ verify (fun boson quark ->
           end
       )
   );;
+
+(** If a boson is emitted, spin is conserved. *)
+verify (fun quark ->
+    let outcomes = Quark.emit quark in
+    outcomes |> List.for_all (fun (b, q) ->
+        match b with
+        | Some boson -> Quark.spin quark = Spin.(Quark.spin q + Boson.spin boson)
+        | None -> Quark.spin quark = Quark.spin q
+      )
+  );;
+
+(** If a boson is emitted, Up-type quarks become Down-type quarks, and vice versa. *)
+verify (fun boson quark ->
+    let outcomes = Quark.emit quark in
+    outcomes |> List.for_all (fun (b, q) ->
+        match b with
+        | Some _ ->
+          begin match
+              ( Quark.flavor_type (Quark.flavor quark)
+              , Quark.flavor_type (Quark.flavor q)
+              )
+            with
+            | Down, Up
+            | Up, Down -> true
+            | _ -> false
+          end
+        | None -> Quark.flavor quark = Quark.flavor q
+      )
+  );;
+
 
 module Lepton = struct
   type l =
