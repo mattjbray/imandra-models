@@ -156,6 +156,12 @@ module Baryon = struct
 
     let make q1 q2 q3 = { q1; q2; q3 }
 
+    let is_valid t =
+      let c1 = Quark.color t.q1 in
+      let c2 = Quark.color t.q2 in
+      let c3 = Quark.color t.q3 in
+      c1 <> c2 && c2 <> c3 && c1 <> c3
+
     let spin t =
       Spin.(Quark.spin t.q1 + Quark.spin t.q2 + Quark.spin t.q3)
 
@@ -165,11 +171,13 @@ end
 ;;
 
 verify (fun baryon ->
+    Baryon.is_valid baryon ==>
     let s = Spin.magnitude (Baryon.spin baryon) in
     List.mem s [ 1.5; 0.5 ]
   );;
 
 verify (fun baryon ->
+    Baryon.is_valid baryon ==>
     let c = Baryon.charge baryon in
     List.mem c [ 2.0; 1.0; 0.0; -1.0 ]
   );;
