@@ -1,77 +1,97 @@
-type quark = Up | Down | Charm | Strange | Top | Bottom
-
-let up = Up
-let down = Down
-let charm = Charm
-let strange = Strange
-let top = Top
-let bottom = Bottom
-
-type lepton =
-  | Electron | Muon | Tau
-  | Electron_neutrino | Muon_neutrino | Tau_neutrino
-
-type fermion =
-  | Quark of quark
-  | Lepton of lepton
-
-type vector_boson =
-  | Gluon
-  | Photon
-  | W
-  | Z
-
-type scalar_boson =
-  | Higgs
-
-type boson =
-  | Vector of vector_boson
-  | Scalar of scalar_boson
-
-type particle =
-  | Fermion of fermion
-  | Boson of boson
-
 module Spin = struct
-  type t = Spin of Q.t
+  type direction = Up | Down
 
-  let spin = function
-    | Fermion _ -> Spin 0.5
-    | Boson (Vector _ ) -> Spin 1.0
-    | Boson (Scalar Higgs) -> Spin 0.0
+  type t = { magnitude : Q.t; direction : direction }
 
-  let (+) (Spin s1) (Spin s2) = Spin Real.(s1 + s2)
+  let make ?(direction=Up) magnitude = { magnitude; direction}
+
+  let magnitude s = s.magnitude
+
+  let (+) t1 t2 =
+    let s1 = Real.(t1.magnitude * match t1.direction with | Up -> 1.0 | Down -> (-1.0)) in
+    let s2 = Real.(t2.magnitude * match t2.direction with | Up -> 1.0 | Down -> (-1.0)) in
+    let magnitude = Real.(s1 + s2) in
+    let direction = if Real.(magnitude < 0.0) then Down else Up in
+    let magnitude = Real.abs magnitude in
+    { magnitude; direction }
 end
+
+module Quark = struct
+  type q = Up | Down | Charm | Strange | Top | Bottom
+
+  type t =
+    { q : q
+    ; spin_dir : Spin.direction
+    }
+
+  let make ?(spin_dir=Spin.Up) q =
+    { q; spin_dir }
+
+  let up = make Up
+  let down = make Down
+  let charm = make Charm
+  let strange = make Strange
+  let top = make Top
+  let bottom = make Bottom
+
+  let spin t = Spin.make ~direction:t.spin_dir 0.5
+end
+
+module Lepton = struct
+  type l =
+    | Electron | Muon | Tau
+
+  type t =
+    { l : l
+    ; is_neutrino : bool
+    }
+end
+
+(* type fermion = *)
+(*   | Quark of quark *)
+(*   | Lepton of lepton *)
+
+(* type vector_boson = *)
+(*   | Gluon *)
+(*   | Photon *)
+(*   | W *)
+(*   | Z *)
+
+(* type scalar_boson = *)
+(*   | Higgs *)
+
+(* type boson = *)
+(*   | Vector of vector_boson *)
+(*   | Scalar of scalar_boson *)
+
+(* type family = *)
+(*   | Fermion of fermion *)
+(*   | Boson of boson *)
+
 
 module Baryon = struct
     type t =
-      { q1 : quark; q2: quark; q3: quark }
+      { q1 : Quark.t; q2: Quark.t; q3: Quark.t }
 
     let make q1 q2 q3 = { q1; q2; q3 }
 
     let spin t =
-      Spin.(
-       spin (Fermion (Quark t.q1)) +
-       spin (Fermion (Quark t.q2)) +
-       spin (Fermion (Quark t.q3))
-     )
+      Spin.(Quark.spin t.q1 + Quark.spin t.q2 + Quark.spin t.q3)
 end
 ;;
 
 verify (fun baryon ->
-    Baryon.spin baryon = Spin.Spin 0.5
+    let s = Spin.magnitude (Baryon.spin baryon) in
+    s = 0.5 || s = 1.5
   );;
 
 
 module Meson = struct
   type t =
-    { q: quark; anti_q: quark }
+    { q: Quark.t; anti_q: Quark.t }
 
   let make q anti_q = { q; anti_q }
 
   let spin t =
-    Spin.(
-      spin (Fermion (Quark t.q)) +
-      spin (Fermion (Quark t.anti_q))
-    )
+    Spin.(Quark.spin t.q + Quark.spin t.anti_q)
 end
