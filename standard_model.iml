@@ -20,6 +20,16 @@ module Spin = struct
     { magnitude; direction }
 end
 
+module Lepton = struct
+  type l =
+    | Electron | Muon | Tau
+
+  type t =
+    { l : l
+    ; is_neutrino : bool
+    }
+end
+
 module Boson = struct
   type w_type = Plus | Neg
 
@@ -46,6 +56,14 @@ module Boson = struct
 
   let boson_t t = t.boson_t
   let spin t = Spin.make ~direction:t.spin_dir 1.0
+  let charge t =
+    match t.boson_t with
+    | Vector Gluon
+    | Vector Photon
+    | Vector Z
+    | Scalar Higgs -> 0.0
+    | Vector (W Plus) -> 1.0
+    | Vector (W Neg) -> -1.0
 end
 
 module Quark = struct
@@ -155,6 +173,18 @@ verify (fun boson quark ->
       )
   );;
 
+(** Absorbtion conserves charge. *)
+verify (fun boson quark ->
+    let outcomes = Quark.absorb boson quark in
+    outcomes |> List.for_all (fun (b, q) ->
+        match b with
+        | Some b ->
+          Real.(Boson.charge boson + Quark.charge quark = Boson.charge b + Quark.charge q)
+        | None ->
+          Real.(Boson.charge boson + Quark.charge quark = Quark.charge q)
+      )
+  );;
+
 (** If the boson is absorbed, Up-type quarks become Down-type quarks, and vice versa. *)
 verify (fun boson quark ->
     let outcomes = Quark.absorb boson quark in
@@ -180,6 +210,18 @@ verify (fun quark ->
       )
   );;
 
+(** Emission conserves charge. *)
+verify (fun quark ->
+    let outcomes = Quark.emit quark in
+    outcomes |> List.for_all (fun (b, q) ->
+        match b with
+        | Some b ->
+          Real.(Quark.charge quark = Boson.charge b + Quark.charge q)
+        | None ->
+          Real.(Quark.charge quark = Quark.charge q)
+      )
+  );;
+
 (** If a boson is emitted, Up-type quarks become Down-type quarks, and vice versa. *)
 verify (fun boson quark ->
     let outcomes = Quark.emit quark in
@@ -198,17 +240,6 @@ verify (fun boson quark ->
         | None -> Quark.flavor quark = Quark.flavor q
       )
   );;
-
-
-module Lepton = struct
-  type l =
-    | Electron | Muon | Tau
-
-  type t =
-    { l : l
-    ; is_neutrino : bool
-    }
-end
 
 (* type fermion = *)
 (*   | Quark of quark *)
