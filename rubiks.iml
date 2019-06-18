@@ -1,0 +1,226 @@
+[@@@redef true];;
+
+type face =
+  | Front
+  | Back
+  | Top
+  | Bottom
+  | Left
+  | Right
+
+let pp_face fmt = function
+  | Front -> CCFormat.fprintf fmt "F"
+  | Back -> CCFormat.fprintf fmt "B"
+  | Top -> CCFormat.fprintf fmt "U"
+  | Bottom -> CCFormat.fprintf fmt "D"
+  | Left -> CCFormat.fprintf fmt "L"
+  | Right -> CCFormat.fprintf fmt "R"
+[@@program];;
+
+let faces =
+  [ Front
+  ; Back
+  ; Top
+  ; Bottom
+  ; Left
+  ; Right
+  ]
+
+type u =
+  | Zero
+  | One
+
+let us =
+  [ Zero
+  ; One
+  ]
+
+type color =
+  | White
+  | Red
+  | Blue
+  | Orange
+  | Green
+  | Yellow
+
+let pp_color fmt = function
+  | White -> CCFormat.fprintf fmt "@{<white>■@}"
+  | Red -> CCFormat.fprintf fmt "@{<red>■@}"
+  | Blue -> CCFormat.fprintf fmt "@{<blue>■@}"
+  | Orange -> CCFormat.fprintf fmt "@{<magenta>■@}"
+  | Green -> CCFormat.fprintf fmt "@{<green>■@}"
+  | Yellow -> CCFormat.fprintf fmt "@{<yellow>■@}"
+[@@program];;
+
+[@@@install_printer pp_color];;
+
+let () = CCFormat.set_color_default true
+
+type coord =
+  { face : face
+  ; x : u
+  ; y : u
+  }
+
+type cube = (coord, color) Map.t
+
+let pp_cube fmt cube =
+  CCFormat.(
+    fprintf fmt
+      "@.@[<v>\
+         @[      %a %a %a@]@,\
+         @[        %a %a@]@,\
+         @[%a %a %a %a %a %a %a %a %a %a %a %a@]@,\
+         @[  %a %a   %a %a   %a %a   %a %a@]@,\
+         @[      %a %a %a@]@,\
+         @[        %a %a@]@,\
+       @]"
+      pp_face Top
+      pp_color (Map.get { face = Top; y=Zero; x=Zero } cube)
+      pp_color (Map.get { face = Top; y=Zero; x=One } cube)
+      pp_color (Map.get { face = Top; y=One; x=Zero } cube)
+      pp_color (Map.get { face = Top; y=One; x=One } cube)
+
+      pp_face Left
+      pp_color (Map.get { face = Left; y=Zero; x=Zero } cube)
+      pp_color (Map.get { face = Left; y=Zero; x=One } cube)
+      pp_face Front
+      pp_color (Map.get { face = Front; y=Zero; x=Zero } cube)
+      pp_color (Map.get { face = Front; y=Zero; x=One } cube)
+      pp_face Right
+      pp_color (Map.get { face = Right; y=Zero; x=Zero } cube)
+      pp_color (Map.get { face = Right; y=Zero; x=One } cube)
+      pp_face Back
+      pp_color (Map.get { face = Back; y=Zero; x=Zero } cube)
+      pp_color (Map.get { face = Back; y=Zero; x=One } cube)
+
+      pp_color (Map.get { face = Left; y=One; x=Zero } cube)
+      pp_color (Map.get { face = Left; y=One; x=One } cube)
+      pp_color (Map.get { face = Front; y=One; x=Zero } cube)
+      pp_color (Map.get { face = Front; y=One; x=One } cube)
+      pp_color (Map.get { face = Right; y=One; x=Zero } cube)
+      pp_color (Map.get { face = Right; y=One; x=One } cube)
+      pp_color (Map.get { face = Back; y=One; x=Zero } cube)
+      pp_color (Map.get { face = Back; y=One; x=One } cube)
+
+      pp_face Bottom
+      pp_color (Map.get { face = Bottom; y=Zero; x=Zero } cube)
+      pp_color (Map.get { face = Bottom; y=Zero; x=One } cube)
+      pp_color (Map.get { face = Bottom; y=One; x=Zero } cube)
+      pp_color (Map.get { face = Bottom; y=One; x=One } cube)
+  )
+[@@program];;
+
+[@@@install_printer pp_cube];;
+
+let colors_of_face face cube =
+  [ Map.get {face; x= Zero; y = Zero} cube
+  ; Map.get {face; x= Zero; y = One} cube
+  ; Map.get {face; x= One; y = Zero} cube
+  ; Map.get {face; x= One; y = One} cube
+  ]
+
+let solved cube =
+  cube
+  |> colors_of_face Left
+  |> List.for_all (fun color -> color = Green) &&
+  cube
+  |> colors_of_face Front
+  |> List.for_all (fun color -> color = Red) &&
+  cube
+  |> colors_of_face Right
+  |> List.for_all (fun color -> color = Blue) &&
+  cube
+  |> colors_of_face Back
+  |> List.for_all (fun color -> color = Orange) &&
+  cube
+  |> colors_of_face Top
+  |> List.for_all (fun color -> color = White) &&
+  cube
+  |> colors_of_face Bottom
+  |> List.for_all (fun color -> color = Yellow)
+;;
+
+instance (fun cube -> solved cube);;
+CX.cube;;
+
+type action =
+  | L
+  | F
+  | R
+  | B
+
+let move action cube =
+  match action with
+  | L ->
+    cube
+    |> Map.add { face = Left; x = Zero; y = Zero } (Map.get { face = Left; x = Zero; y = One } cube)
+    |> Map.add { face = Left; x = One; y = Zero } (Map.get { face = Left; x = Zero; y = Zero } cube)
+    |> Map.add { face = Left; x = One; y = One } (Map.get { face = Left; x = One; y = Zero } cube)
+    |> Map.add { face = Left; x = Zero; y = One } (Map.get { face = Left; x = One; y = One } cube)
+    |> Map.add { face = Front; x = Zero; y = Zero } (Map.get { face = Top; x = Zero; y = Zero } cube)
+    |> Map.add { face = Front; x = Zero; y = One } (Map.get { face = Top; x = Zero; y = One } cube)
+    |> Map.add { face = Top; x = Zero; y = Zero } (Map.get { face = Back; x = One; y = One } cube)
+    |> Map.add { face = Top; x = Zero; y = One } (Map.get { face = Back; x = One; y = Zero } cube)
+    |> Map.add { face = Back; x = One; y = Zero } (Map.get { face = Bottom; x = Zero; y = One } cube)
+    |> Map.add { face = Back; x = One; y = One } (Map.get { face = Bottom; x = Zero; y = Zero } cube)
+    |> Map.add { face = Bottom; x = Zero; y = Zero } (Map.get { face = Front; x = Zero; y = Zero } cube)
+    |> Map.add { face = Bottom; x = Zero; y = One } (Map.get { face = Front; x = Zero; y = One } cube)
+  | F ->
+    cube
+    |> Map.add { face = Front; x = Zero; y = Zero } (Map.get { face = Front; x = Zero; y = One } cube)
+    |> Map.add { face = Front; x = One; y = Zero } (Map.get { face = Front; x = Zero; y = Zero } cube)
+    |> Map.add { face = Front; x = One; y = One } (Map.get { face = Front; x = One; y = Zero } cube)
+    |> Map.add { face = Front; x = Zero; y = One } (Map.get { face = Front; x = One; y = One } cube)
+    |> Map.add { face = Top; x = Zero; y = One } (Map.get { face = Left; x = One; y = One } cube)
+    |> Map.add { face = Top; x = One; y = One } (Map.get { face = Left; x = One; y = Zero } cube)
+    |> Map.add { face = Right; x = Zero; y = Zero } (Map.get { face = Top; x = Zero; y = One } cube)
+    |> Map.add { face = Right; x = Zero; y = One } (Map.get { face = Top; x = One; y = One } cube)
+    |> Map.add { face = Bottom; x = Zero; y = Zero } (Map.get { face = Right; x = Zero; y = One } cube)
+    |> Map.add { face = Bottom; x = One; y = Zero } (Map.get { face = Right; x = Zero; y = Zero } cube)
+    |> Map.add { face = Left; x = One; y = Zero } (Map.get { face = Bottom; x = Zero; y = Zero } cube)
+    |> Map.add { face = Left; x = One; y = One } (Map.get { face = Bottom; x = One; y = Zero } cube)
+  | R ->
+    cube
+    |> Map.add { face = Right; x = Zero; y = Zero } (Map.get { face = Right; x = Zero; y = One } cube)
+    |> Map.add { face = Right; x = One; y = Zero } (Map.get { face = Right; x = Zero; y = Zero } cube)
+    |> Map.add { face = Right; x = One; y = One } (Map.get { face = Right; x = One; y = Zero } cube)
+    |> Map.add { face = Right; x = Zero; y = One } (Map.get { face = Right; x = One; y = One } cube)
+    |> Map.add { face = Front; x = One; y = Zero } (Map.get { face = Bottom; x = One; y = Zero } cube)
+    |> Map.add { face = Front; x = One; y = One } (Map.get { face = Bottom; x = One; y = One } cube)
+    |> Map.add { face = Top; x = One; y = Zero } (Map.get { face = Front; x = One; y = Zero } cube)
+    |> Map.add { face = Top; x = One; y = One } (Map.get { face = Front; x = One; y = One } cube)
+    |> Map.add { face = Bottom; x = One; y = Zero } (Map.get { face = Back; x = Zero; y = Zero } cube)
+    |> Map.add { face = Bottom; x = One; y = One } (Map.get { face = Back; x = Zero; y = One } cube)
+    |> Map.add { face = Back; x = Zero; y = Zero } (Map.get { face = Top; x = One; y = Zero } cube)
+    |> Map.add { face = Back; x = Zero; y = One } (Map.get { face = Top; x = One; y = One } cube)
+  | B ->
+    cube
+    |> Map.add { face = Back; x = Zero; y = Zero } (Map.get { face = Back; x = Zero; y = One } cube)
+    |> Map.add { face = Back; x = One; y = Zero } (Map.get { face = Back; x = Zero; y = Zero } cube)
+    |> Map.add { face = Back; x = One; y = One } (Map.get { face = Back; x = One; y = Zero } cube)
+    |> Map.add { face = Back; x = Zero; y = One } (Map.get { face = Back; x = One; y = One } cube)
+    |> Map.add { face = Right; x = One; y = Zero } (Map.get { face = Bottom; x = One; y = One } cube)
+    |> Map.add { face = Right; x = One; y = One } (Map.get { face = Bottom; x = Zero; y = One } cube)
+    |> Map.add { face = Top; x = Zero; y = Zero } (Map.get { face = Right; x = One; y = Zero } cube)
+    |> Map.add { face = Top; x = One; y = Zero } (Map.get { face = Right; x = One; y = One } cube)
+    |> Map.add { face = Left; x = Zero; y = Zero } (Map.get { face = Top; x = One; y = Zero } cube)
+    |> Map.add { face = Left; x = Zero; y = One } (Map.get { face = Top; x = Zero; y = Zero } cube)
+    |> Map.add { face = Bottom; x = Zero; y = One } (Map.get { face = Left; x = Zero; y = Zero } cube)
+    |> Map.add { face = Bottom; x = One; y = One } (Map.get { face = Left; x = Zero; y = One } cube)
+;;
+
+let moves ms cube =
+  List.fold_right ~base:cube move (List.rev ms)
+;;
+
+(** Applying the same move four times is a noop. *)
+verify (fun m (cube : cube) ->
+    (cube |> moves [m; m; m; m])
+    = cube
+  );;
+
+instance (fun cube ms ->
+    List.length ms > 2 &&
+    solved (moves ms cube));;
+CX.cube;;
