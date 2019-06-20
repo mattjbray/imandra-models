@@ -55,36 +55,36 @@ let pp_cube fmt cube =
        @]"
       pp_face U
       pp_color (Map.get (U, 0, 0) cube)
-      pp_color (Map.get (U, 0, 1) cube)
       pp_color (Map.get (U, 1, 0) cube)
+      pp_color (Map.get (U, 0, 1) cube)
       pp_color (Map.get (U, 1, 1) cube)
 
       pp_face L
       pp_color (Map.get (L, 0, 0) cube)
-      pp_color (Map.get (L, 0, 1) cube)
+      pp_color (Map.get (L, 1, 0) cube)
       pp_face F
       pp_color (Map.get (F, 0, 0) cube)
-      pp_color (Map.get (F, 0, 1) cube)
+      pp_color (Map.get (F, 1, 0) cube)
       pp_face R
       pp_color (Map.get (R, 0, 0) cube)
-      pp_color (Map.get (R, 0, 1) cube)
+      pp_color (Map.get (R, 1, 0) cube)
       pp_face B
       pp_color (Map.get (B, 0, 0) cube)
-      pp_color (Map.get (B, 0, 1) cube)
-
-      pp_color (Map.get (L, 1, 0) cube)
-      pp_color (Map.get (L, 1, 1) cube)
-      pp_color (Map.get (F, 1, 0) cube)
-      pp_color (Map.get (F, 1, 1) cube)
-      pp_color (Map.get (R, 1, 0) cube)
-      pp_color (Map.get (R, 1, 1) cube)
       pp_color (Map.get (B, 1, 0) cube)
+
+      pp_color (Map.get (L, 0, 1) cube)
+      pp_color (Map.get (L, 1, 1) cube)
+      pp_color (Map.get (F, 0, 1) cube)
+      pp_color (Map.get (F, 1, 1) cube)
+      pp_color (Map.get (R, 0, 1) cube)
+      pp_color (Map.get (R, 1, 1) cube)
+      pp_color (Map.get (B, 0, 1) cube)
       pp_color (Map.get (B, 1, 1) cube)
 
       pp_face D
       pp_color (Map.get (D, 0, 0) cube)
-      pp_color (Map.get (D, 0, 1) cube)
       pp_color (Map.get (D, 1, 0) cube)
+      pp_color (Map.get (D, 0, 1) cube)
       pp_color (Map.get (D, 1, 1) cube)
   )
 [@@program];;
@@ -122,65 +122,137 @@ let solved cube =
 instance (fun cube -> solved cube);;
 CX.cube;;
 
-let rotate face cube =
+let rotate_face face cube =
+  cube
+  |> Map.add (face, 0, 0) (Map.get (face, 0, 1) cube)
+  |> Map.add (face, 1, 0) (Map.get (face, 0, 0) cube)
+  |> Map.add (face, 1, 1) (Map.get (face, 1, 0) cube)
+  |> Map.add (face, 0, 1) (Map.get (face, 1, 1) cube)
+
+let rotate_list ~by xs =
+  List.drop by xs @ List.take by xs
+
+let adjacent_coords face =
   match face with
-  | L ->
-    cube
-    |> Map.add (L, 0, 0) (Map.get (L, 0, 1) cube)
-    |> Map.add (L, 1, 0) (Map.get (L, 0, 0) cube)
-    |> Map.add (L, 1, 1) (Map.get (L, 1, 0) cube)
-    |> Map.add (L, 0, 1) (Map.get (L, 1, 1) cube)
-    |> Map.add (F, 0, 0) (Map.get (U, 0, 0) cube)
-    |> Map.add (F, 0, 1) (Map.get (U, 0, 1) cube)
-    |> Map.add (U, 0, 0) (Map.get (B, 1, 1) cube)
-    |> Map.add (U, 0, 1) (Map.get (B, 1, 0) cube)
-    |> Map.add (B, 1, 0) (Map.get (D, 0, 1) cube)
-    |> Map.add (B, 1, 1) (Map.get (D, 0, 0) cube)
-    |> Map.add (D, 0, 0) (Map.get (F, 0, 0) cube)
-    |> Map.add (D, 0, 1) (Map.get (F, 0, 1) cube)
   | F ->
-    cube
-    |> Map.add (F, 0, 0) (Map.get (F, 0, 1) cube)
-    |> Map.add (F, 1, 0) (Map.get (F, 0, 0) cube)
-    |> Map.add (F, 1, 1) (Map.get (F, 1, 0) cube)
-    |> Map.add (F, 0, 1) (Map.get (F, 1, 1) cube)
-    |> Map.add (U, 0, 1) (Map.get (L, 1, 1) cube)
-    |> Map.add (U, 1, 1) (Map.get (L, 1, 0) cube)
-    |> Map.add (R, 0, 0) (Map.get (U, 0, 1) cube)
-    |> Map.add (R, 0, 1) (Map.get (U, 1, 1) cube)
-    |> Map.add (D, 0, 0) (Map.get (R, 0, 1) cube)
-    |> Map.add (D, 1, 0) (Map.get (R, 0, 0) cube)
-    |> Map.add (L, 1, 0) (Map.get (D, 0, 0) cube)
-    |> Map.add (L, 1, 1) (Map.get (D, 1, 0) cube)
+    (*         U . .
+     *           1 2
+     *   L . 8 F . . R 3 . B . .
+     *     . 7   . .   4 .   . .
+     *         D 6 5
+     *           . .
+    *)
+    [ (U, 0, 1)
+    ; (U, 1, 1)
+    ; (R, 0, 0)
+    ; (R, 0, 1)
+    ; (D, 1, 0)
+    ; (D, 0, 0)
+    ; (L, 1, 1)
+    ; (L, 1, 0)
+    ]
+  | L ->
+    (*         U 1 .
+     *           2 .
+     *   L . . F 3 . R . . B . 8
+     *     . .   4 .   . .   . 7
+     *         D 5 .
+     *           6 .
+    *)
+    [ (U, 0, 0)
+    ; (U, 0, 1)
+    ; (F, 0, 0)
+    ; (F, 0, 1)
+    ; (D, 0, 0)
+    ; (D, 0, 1)
+    ; (B, 1, 1)
+    ; (B, 1, 0)
+    ]
   | R ->
-    cube
-    |> Map.add (R, 0, 0) (Map.get (R, 0, 1) cube)
-    |> Map.add (R, 1, 0) (Map.get (R, 0, 0) cube)
-    |> Map.add (R, 1, 1) (Map.get (R, 1, 0) cube)
-    |> Map.add (R, 0, 1) (Map.get (R, 1, 1) cube)
-    |> Map.add (F, 1, 0) (Map.get (D, 1, 0) cube)
-    |> Map.add (F, 1, 1) (Map.get (D, 1, 1) cube)
-    |> Map.add (U, 1, 0) (Map.get (F, 1, 0) cube)
-    |> Map.add (U, 1, 1) (Map.get (F, 1, 1) cube)
-    |> Map.add (D, 1, 0) (Map.get (B, 0, 0) cube)
-    |> Map.add (D, 1, 1) (Map.get (B, 0, 1) cube)
-    |> Map.add (B, 0, 0) (Map.get (U, 1, 0) cube)
-    |> Map.add (B, 0, 1) (Map.get (U, 1, 1) cube)
+    (*         U . 2
+     *           . 1
+     *   L . . F . 8 R . . B 3 .
+     *     . .   . 7   . .   4 .
+     *         D . 6
+     *           . 5
+    *)
+    [ (U, 1, 1)
+    ; (U, 1, 0)
+    ; (B, 0, 0)
+    ; (B, 0, 1)
+    ; (D, 1, 1)
+    ; (D, 1, 0)
+    ; (F, 1, 1)
+    ; (F, 1, 0)
+    ]
   | B ->
-    cube
-    |> Map.add (B, 0, 0) (Map.get (B, 0, 1) cube)
-    |> Map.add (B, 1, 0) (Map.get (B, 0, 0) cube)
-    |> Map.add (B, 1, 1) (Map.get (B, 1, 0) cube)
-    |> Map.add (B, 0, 1) (Map.get (B, 1, 1) cube)
-    |> Map.add (R, 1, 0) (Map.get (D, 1, 1) cube)
-    |> Map.add (R, 1, 1) (Map.get (D, 0, 1) cube)
-    |> Map.add (U, 0, 0) (Map.get (R, 1, 0) cube)
-    |> Map.add (U, 1, 0) (Map.get (R, 1, 1) cube)
-    |> Map.add (L, 0, 0) (Map.get (U, 1, 0) cube)
-    |> Map.add (L, 0, 1) (Map.get (U, 0, 0) cube)
-    |> Map.add (D, 0, 1) (Map.get (L, 0, 0) cube)
-    |> Map.add (D, 1, 1) (Map.get (L, 0, 1) cube)
-  | _ -> cube (* TODO *)
+    (*         U 2 1
+     *           . .
+     *   L 3 . F . . R . 8 B . .
+     *     4 .   . .   . 7   . .
+     *         D . .
+     *           5 6
+    *)
+    [ (U, 1, 0)
+    ; (U, 0, 0)
+    ; (L, 0, 0)
+    ; (L, 0, 1)
+    ; (D, 0, 1)
+    ; (D, 1, 1)
+    ; (R, 1, 1)
+    ; (R, 1, 0)
+    ]
+  | U ->
+    (*         U . .
+     *           . .
+     *   L 8 7 F 6 5 R 4 3 B 2 1
+     *     . .   . .   . .   . .
+     *         D . .
+     *           . .
+    *)
+    [ (B, 1, 0)
+    ; (B, 0, 0)
+    ; (R, 1, 0)
+    ; (R, 0, 0)
+    ; (F, 1, 0)
+    ; (F, 0, 0)
+    ; (L, 1, 0)
+    ; (L, 0, 0)
+    ]
+  | D ->
+    (*         U . .
+     *           . .
+     *   L . . F . . R . . B . .
+     *     7 8   1 2   3 4   5 6
+     *         D . .
+     *           . .
+    *)
+    [ (F, 0, 1)
+    ; (F, 1, 1)
+    ; (R, 0, 1)
+    ; (R, 1, 1)
+    ; (B, 0, 1)
+    ; (B, 1, 1)
+    ; (L, 0, 1)
+    ; (L, 1, 1)
+    ]
+
+let rec zip xs ys =
+  match xs, ys with
+  | x :: xs, y :: ys -> (x, y) :: zip xs ys
+  | _ -> []
+
+let rotate face cube =
+    let cube' = rotate_face face cube in
+    let src_coords = adjacent_coords face in
+    let dest_coords = rotate_list ~by:2 src_coords in
+    let cube' =
+      zip src_coords dest_coords
+      |> List.fold_right ~base:cube' (fun (src, dst) cube' ->
+          cube' |> Map.add dst (Map.get src cube)
+        )
+    in
+    cube'
 ;;
 
 let moves ms cube =
@@ -189,9 +261,9 @@ let moves ms cube =
 
 (** Applying the same rotate four times is a noop. *)
 verify (fun m (cube : cube) ->
-    (cube |> moves [m; m; m; m])
-    = cube
-  );;
+    (match m with D -> true | _ -> false) ==>
+    (cube |> moves [m; m; m; m]) = cube
+  )[@@simp];;
 
 instance (fun cube ms ->
     List.length ms > 2 &&
