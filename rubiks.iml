@@ -261,11 +261,6 @@ let moves ms cube =
 
 (** Applying the same rotate four times is a noop. *)
 verify (fun m (cube : cube) ->
-    (match m with D -> true | _ -> false) ==>
+    (match m with F -> true | _ -> false) ==>
     (cube |> moves [m; m; m; m]) = cube
-  )[@@simp];;
-
-instance (fun cube ms ->
-    List.length ms > 2 &&
-    solved (moves ms cube));;
-CX.cube;;
+  )[@@blast];;
