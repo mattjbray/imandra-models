@@ -1,0 +1,37 @@
+[@@@max_induct 1]
+
+[@@@import "l.iml"]
+[@@@import "leaf_tree.iml"]
+[@@@import "util.iml"]
+
+let split xs =
+  L.cata ([], [])
+    (fun x (l,r) -> (r, x::l))
+    xs
+
+let rec merge xs ys =
+  match (xs, ys) with
+  | x :: xs, y :: ys ->
+    if x < y then
+      x :: merge xs (y :: ys)
+    else
+      y :: merge (x :: xs) ys
+  | [], ys -> ys
+  | xs, [] -> xs
+[@@adm xs, ys]
+
+let single x = [x]
+
+let select = function
+  | [x] -> Left x
+  | xs -> Right (split xs)
+
+let merge_sort xs =
+  Leaf_tree.hylo select single merge
+    ~bound:(List.length xs)
+    ~default:[]
+    xs
+
+(* theorem merge_sort_sorts xs = *)
+(*   Util.is_sorted (merge_sort xs) *)
+(* [@@auto] *)

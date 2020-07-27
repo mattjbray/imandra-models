@@ -1,0 +1,47 @@
+[@@@max_induct 1]
+[@@@import "l.iml"]
+[@@@import "util.iml"]
+
+let selection_sort extract xs =
+  let select = function
+    | [] -> Left ()
+    | hd :: tl ->
+      let min, l' = extract hd tl in
+      Right (min, l')
+  in
+  L.ana ~bound:(List.length xs) select xs
+
+let minimum hd tl =
+  L.cata hd (fun min x -> if x < min then x else min) tl
+
+let rec remove x = function
+  | [] -> []
+  | x1 :: xs -> if x = x1 then xs else x1 :: remove x xs
+
+let extract hd tl =
+  let m = minimum hd tl in
+  (m, remove m (hd :: tl))
+
+let straight_selection_sort =
+  selection_sort extract
+
+let rec bubble x1 xs =
+  match xs with
+  | [] -> (x1, [])
+  | x2 :: xs ->
+    let (y, xs) = bubble x2 xs in
+    if x1 <= y then
+      (x1, y :: xs)
+    else
+      (y, x1 :: xs)
+
+theorem bubble_bubbes x xs =
+  let y, xs' = bubble x xs in
+  Util.all_gte y xs'
+[@@auto][@@rw]
+
+let bubble_sort = selection_sort bubble
+
+(* theorem bubble_sort_sorts xs = *)
+(*   is_sorted (bubble_sort xs) *)
+(* [@@auto];; *)

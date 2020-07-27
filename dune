@@ -1,0 +1,5 @@
+(library
+ (name "imandra_models")
+ (public_name "imandra-models")
+ (libraries imandra-base.prelude)
+ (flags :standard -w -33))

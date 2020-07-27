@@ -1,0 +1,44 @@
+[@@@import "./leaf_tree.iml"]
+
+let sum = Leaf_tree.cata id (+)
+
+let destruct_fib n =
+  if n < 2 then Left 1 else Right (n-1, n-2)
+
+let fib_tree n =
+  Leaf_tree.ana ~bound:n ~default:(Leaf 0) destruct_fib n
+
+let fib n =
+  let t = fib_tree n in
+  sum t
+
+
+let fib' n =
+  Leaf_tree.hylo destruct_fib id (+) ~bound:n ~default:0
+
+let destruct_count (i, n) =
+  if i <= 1 then Left n else Right ((0, n), (i-1, n-1))
+
+let count n =
+  Leaf_tree.ana ~bound:n
+    ~default:(Leaf 0)
+    destruct_count
+    (n, n)
+
+let fac n =
+  Leaf_tree.hylo
+    ~bound:n
+    ~default:0
+    destruct_count
+    id
+    ( * )
+    (n, n)
+
+let pow n x =
+  Leaf_tree.hylo
+    ~bound:n
+    ~default:0
+    (fun n -> if n < 2 then Left x else Right (0, n-1))
+    id
+    ( * )
+    n

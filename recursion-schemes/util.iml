@@ -1,0 +1,16 @@
+let rec is_sorted = function
+  | [] -> true
+  | [_] -> true
+  | x :: y :: xs ->
+    x <= y && is_sorted (y :: xs)
+
+let rec all_gte y = function
+  | [] -> true
+  | x :: xs -> x >= y && all_gte y xs
+
+theorem all_gte_trans x y xs =
+  x <= y
+  && all_gte y xs
+  ==>
+  all_gte x xs
+[@@auto][@@fc]

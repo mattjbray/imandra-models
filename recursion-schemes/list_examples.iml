@@ -1,0 +1,64 @@
+[@@@import "l.iml"]
+
+let prod xs = L.cata 1 ( * ) xs
+
+let rev xs = L.cata [] (fun x xs -> xs @ [x]) xs
+
+    theorem cata_rev_is_list_rev xs =
+             List.rev xs = rev xs
+[@@auto]
+
+let count down_from = L.ana ~bound:down_from (function
+    | 0 -> Left ()
+    | n -> Right (n, n-1)) down_from
+
+let rec add_multiples_of ~upto x i not_primes =
+  if upto > 0 && x > 0 && i > 0 then
+    let x' = i * x in
+    if x' > upto then
+      not_primes
+    else
+      add_multiples_of ~upto x (i + 1) (Set.add x' not_primes)
+  else
+    not_primes
+[@@measure Ordinal.of_int (upto - i * x)]
+
+let rec next_prime ~upto candidate not_primes =
+  if candidate > upto then
+    Left ()
+  else if Set.mem candidate not_primes then
+    next_prime ~upto (candidate + 1) not_primes
+  else
+    let not_primes = add_multiples_of ~upto candidate 1 not_primes in
+    Right (candidate, (candidate + 1, not_primes))
+[@@measure Ordinal.of_int (upto - candidate)]
+
+let primes ~upto =
+  1 :: L.ana ~bound:upto (fun (candidate, not_primes) ->
+      next_prime ~upto candidate not_primes) (2, Set.empty)
+
+    theorem primes_are_prime upto prime i =
+  i > 1 &&
+  i < prime &&
+  List.mem prime (primes ~upto)
+  ==>
+  prime / i <> 0
+
+let fac x =
+  L.hylo
+    ~bound:x
+    (function
+      | 0 -> Left ()
+      | n -> Right (n, n-1))
+    1
+    ( * )
+    x
+
+(** [pow n x] is [x^n] *)
+let pow n x =
+  L.hylo
+    ~bound:n
+    (fun n -> if n < 2 then Left () else Right (x, n-1))
+    x
+    ( * )
+    n

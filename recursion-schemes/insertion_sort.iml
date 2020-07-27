@@ -1,0 +1,22 @@
+[@@@max_induct 1]
+[@@@import "l.iml"]
+[@@@import "util.iml"]
+
+let rec insert x = function
+  | [] -> [x]
+  | a :: l ->
+    if x <= a then
+      x :: a :: l
+    else
+      a :: insert x l
+
+theorem insert_preserves_is_sorted x xs =
+  Util.is_sorted xs ==> Util.is_sorted (insert x xs)
+[@@auto]
+[@@rw]
+
+let insertion_sort = L.cata [] insert
+
+theorem insertion_sort_sorts xs =
+  Util.is_sorted (insertion_sort xs)
+[@@auto]

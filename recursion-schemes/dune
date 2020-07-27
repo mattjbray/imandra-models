@@ -1,0 +1,4 @@
+(library
+ (name "imandra_models_recursion_schemes")
+ (libraries imandra-base.prelude)
+ (flags :standard -w -33))

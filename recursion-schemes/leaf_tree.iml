@@ -1,0 +1,28 @@
+type 'a t =
+  | Leaf of 'a
+  | Split of 'a t * 'a t
+
+let cata fl fs xs =
+  let rec cata = function
+    | Leaf x -> fl x
+    | Split (l, r) -> fs (cata l) (cata r)
+  in
+  cata xs
+
+let ana ~bound ~default d =
+  let rec ana ~bound t =
+    if bound < 0 then default else
+    match d t with
+    | Left l -> Leaf l
+    | Right (l, r) -> Split (ana ~bound:(bound - 1) l, ana ~bound:(bound - 1) r)
+  in
+  ana ~bound
+
+let hylo ~bound ~default d fl fs =
+  let rec hylo ~bound t =
+    if bound < 0 then default else
+    match d t with
+    | Left l -> fl l
+    | Right (l, r) -> fs (hylo ~bound:(bound-1) l) (hylo ~bound:(bound-1) r)
+  in
+  hylo ~bound

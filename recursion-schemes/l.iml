@@ -1,0 +1,24 @@
+let cata a f =
+  let rec cata = function
+    | [] -> a
+    | x :: xs -> f x (cata xs)
+  in
+  cata
+
+let ana ~bound a =
+  let rec ana ~bound u =
+    if bound < 0 then [] else
+      match a u with
+      | Left () -> []
+      | Right (x, l) -> x :: ana ~bound:(bound - 1) l
+  in
+  ana ~bound
+
+let hylo ~bound d a f =
+  let rec hylo ~bound u =
+    if bound < 0 then a else
+      match d u with
+      | Left () -> a
+      | Right (x,l) -> f x (hylo ~bound:(bound -1) l)
+  in
+  hylo ~bound
