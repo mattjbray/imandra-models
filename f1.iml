@@ -1,0 +1,99 @@
+type driver = Lewis | Max
+
+type results =
+  { lewis : int
+  ; max : int
+  ; fastest_lap : driver option
+  }
+
+
+let is_valid r =
+  r.lewis > 0 && r.lewis <= 20
+  && r.max > 0 && r.max <= 20
+  && r.lewis <> r.max
+
+
+let position driver results =
+  match driver with
+  | Lewis -> results.lewis
+  | Max -> results.max
+
+
+let _points_of_position = function
+  | 1 -> 25
+  | 2 -> 18
+  | 3 -> 15
+  | 4 -> 12
+  | 5 -> 10
+  | 6 -> 8
+  | 7 -> 6
+  | 8 -> 4
+  | 9 -> 2
+  | 10 -> 1
+  | _ -> 0
+
+
+let points_of_position p =
+  if p <= 0 then 0
+  else if p <= 1 then 25
+  else if p <= 2 then 18
+  else if p <= 3 then 15
+  else if p <= 4 then 12
+  else if p <= 5 then 10
+  else if p <= 6 then 8
+  else if p <= 7 then 6
+  else if p <= 8 then 4
+  else if p <= 9 then 2
+  else if p <= 10 then 1
+  else 0
+
+
+
+let bonus_point driver results =
+  let pos = position driver results in
+  if results.fastest_lap = Some driver && pos <= 10 then 1 else 0
+
+
+let points driver results =
+  let pos = (position driver results) in
+  points_of_position pos + bonus_point driver results
+
+
+let championship_winner results =
+  if points Lewis results > points Max results then Lewis else Max
+
+
+let loser_wins r =
+  let loser = if position Max r < position Lewis r then Lewis else Max in
+  is_valid r && championship_winner r = loser
+
+
+[@@@program]
+
+module PPrinter = Imandra_tools.Region_pp.PPrinter
+
+let pp_cs ?inv () fmt cs =
+  let nodes = PPrinter.pp ?inv cs in
+  CCFormat.(fprintf fmt "%a" (list ~sep:(return "@ ") (hbox (PPrinter.Printer.print()))) nodes)
+
+let pp_r fmt (r : Modular_region.t) =
+  let open CCFormat in
+  let model = Modular_decomp.get_model r in
+  fprintf fmt "@[<v 2>%a:" Modular_region.pp_id r.mreg_id;
+  fprintf fmt "@ @[<hv 2>constraints:@ %a@]" (pp_cs ()) (Modular_region.constraints r);
+  fprintf fmt "@ @[<hv 2>invariant:@ %a@]" (pp_cs ~inv:true ()) [ Modular_region.invariant r ];
+  fprintf fmt "@ @[<hv 2>status:@ %a@]" Modular_region.pp_status r.mreg_status;
+  fprintf fmt "@ @[<hv 2>model:@ %a@]" Top_result.pp_model model;
+  fprintf fmt "@]"
+
+let pp_d fmt d =
+  let open CCFormat in
+  let rs = Modular_decomp.get_regions d in
+  fprintf fmt "@[<v 2>regions:@ %a@]" (list ~sep:(return "@ ") pp_r) rs
+;;
+#install_printer pp_d;;
+
+(* let d = Modular_decomp.top "championship_winner" ~assuming:"is_valid" ~prune:true *)
+
+let d = Modular_decomp.top "championship_winner" ~assuming:"loser_wins" ~prune:true
+
