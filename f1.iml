@@ -48,7 +48,6 @@ let points_of_position p =
   else 0
 
 
-
 let bonus_point driver results =
   let pos = position driver results in
   if results.fastest_lap = Some driver && pos <= 10 then 1 else 0
@@ -63,6 +62,21 @@ let championship_winner results =
   if points Lewis results > points Max results then Lewis else Max
 
 
+module Simp = struct
+  let max_wins r =
+    r.max < r.lewis
+    || (r.max > 10 && r.lewis > 10)
+    || (r.lewis = 9 && r.max = 10 && r.fastest_lap = Some Max)
+
+
+  let championship_winner_simp r = if max_wins r then Max else Lewis
+
+  let championship_winner_equiv r =
+    is_valid r ==> championship_winner r = championship_winner_simp r
+  [@@imandra_theorem]
+end
+
+
 let loser_wins r =
   let loser = if position Max r < position Lewis r then Lewis else Max in
   is_valid r && championship_winner r = loser
@@ -72,28 +86,37 @@ let loser_wins r =
 
 module PPrinter = Imandra_tools.Region_pp.PPrinter
 
-let pp_cs ?inv () fmt cs =
-  let nodes = PPrinter.pp ?inv cs in
-  CCFormat.(fprintf fmt "%a" (list ~sep:(return "@ ") (hbox (PPrinter.Printer.print()))) nodes)
+let pp_cs ?(simp=true) ?inv () fmt cs =
+  let open CCFormat in
+  if simp then
+    let nodes = PPrinter.pp ?inv cs in
+    fprintf fmt "%a"
+      (list ~sep:(return "@ ") (hbox (PPrinter.Printer.print()))) nodes
+  else
+    fprintf fmt "%a"
+      (list ~sep:(return "@ ") (hbox Term.pp)) cs
+
 
 let pp_r fmt (r : Modular_region.t) =
   let open CCFormat in
   let model = Modular_decomp.get_model r in
   fprintf fmt "@[<v 2>%a:" Modular_region.pp_id r.mreg_id;
-  fprintf fmt "@ @[<hv 2>constraints:@ %a@]" (pp_cs ()) (Modular_region.constraints r);
+  fprintf fmt "@ @[<v 2>constraints:@ %a@]" (pp_cs ()) (Modular_region.constraints r);
   fprintf fmt "@ @[<hv 2>invariant:@ %a@]" (pp_cs ~inv:true ()) [ Modular_region.invariant r ];
   fprintf fmt "@ @[<hv 2>status:@ %a@]" Modular_region.pp_status r.mreg_status;
   fprintf fmt "@ @[<hv 2>model:@ %a@]" Top_result.pp_model model;
   fprintf fmt "@]"
 
+
 let pp_d fmt d =
   let open CCFormat in
   let rs = Modular_decomp.get_regions d in
   fprintf fmt "@[<v 2>regions:@ %a@]" (list ~sep:(return "@ ") pp_r) rs
-;;
-#install_printer pp_d;;
 
-(* let d = Modular_decomp.top "championship_winner" ~assuming:"is_valid" ~prune:true *)
+[@@@install_printer pp_d]
 
-let d = Modular_decomp.top "championship_winner" ~assuming:"loser_wins" ~prune:true
+(* let d = Modular_decomp.top "championship_winner" ~assuming:"F1.is_valid" ~prune:true *)
 
+(* let d = Modular_decomp.top "championship_winner" ~assuming:"loser_wins" ~prune:true *)
+
+let d = Modular_decomp.top "Simp.championship_winner_simp" ~assuming:"is_valid" ~prune:true
