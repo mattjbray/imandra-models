@@ -19,7 +19,7 @@ let position driver results =
   | Max -> results.max
 
 
-let _points_of_position = function
+let points_of_position = function
   | 1 -> 25
   | 2 -> 18
   | 3 -> 15
@@ -33,7 +33,7 @@ let _points_of_position = function
   | _ -> 0
 
 
-let points_of_position p =
+let _points_of_position p =
   if p <= 0 then 0
   else if p <= 1 then 25
   else if p <= 2 then 18
@@ -84,39 +84,7 @@ let loser_wins r =
 
 [@@@program]
 
-module PPrinter = Imandra_tools.Region_pp.PPrinter
 
-let pp_cs ?(simp=true) ?inv () fmt cs =
-  let open CCFormat in
-  if simp then
-    let nodes = PPrinter.pp ?inv cs in
-    fprintf fmt "%a"
-      (list ~sep:(return "@ ") (hbox (PPrinter.Printer.print()))) nodes
-  else
-    fprintf fmt "%a"
-      (list ~sep:(return "@ ") (hbox Term.pp)) cs
+let d = Modular_decomp.top "championship_winner" ~assuming:"is_valid" ~prune:true
 
-
-let pp_r fmt (r : Modular_region.t) =
-  let open CCFormat in
-  let model = Modular_decomp.get_model r in
-  fprintf fmt "@[<v 2>%a:" Modular_region.pp_id r.mreg_id;
-  fprintf fmt "@ @[<v 2>constraints:@ %a@]" (pp_cs ()) (Modular_region.constraints r);
-  fprintf fmt "@ @[<hv 2>invariant:@ %a@]" (pp_cs ~inv:true ()) [ Modular_region.invariant r ];
-  fprintf fmt "@ @[<hv 2>status:@ %a@]" Modular_region.pp_status r.mreg_status;
-  fprintf fmt "@ @[<hv 2>model:@ %a@]" Top_result.pp_model model;
-  fprintf fmt "@]"
-
-
-let pp_d fmt d =
-  let open CCFormat in
-  let rs = Modular_decomp.get_regions d in
-  fprintf fmt "@[<v 2>regions:@ %a@]" (list ~sep:(return "@ ") pp_r) rs
-
-[@@@install_printer pp_d]
-
-(* let d = Modular_decomp.top "championship_winner" ~assuming:"F1.is_valid" ~prune:true *)
-
-(* let d = Modular_decomp.top "championship_winner" ~assuming:"loser_wins" ~prune:true *)
-
-let d = Modular_decomp.top "Simp.championship_winner_simp" ~assuming:"is_valid" ~prune:true
+let rs = Modular_decomp.get_regions d
